@@ -7,65 +7,361 @@
 
     <title>AR Furniture Test</title>
 
-    <script
-        type="module"
-        src="https://cdnjs.cloudflare.com/ajax/libs/model-viewer/4.1.0/model-viewer.min.js">
-    </script>
-
     <style>
-        html,
-        body {
+        html, body {
             margin: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
+            background: #eeeeee;
             font-family: Arial, sans-serif;
         }
 
-        model-viewer {
-            width: 100%;
-            height: 100%;
-            display: block;
-            background: #eeeeee;
-        }
-
-        #ar-button {
+        #info {
             position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-
-            padding: 15px 25px;
-            border: none;
-            border-radius: 30px;
+            top: 15px;
+            left: 15px;
+            z-index: 10;
 
             background: white;
-            color: #222;
+            padding: 10px 15px;
+            border-radius: 8px;
 
-            font-size: 16px;
-            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
 
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
+            font-size: 14px;
+        }
+
+        #error {
+            display: none;
+
+            position: absolute;
+            top: 70px;
+            left: 15px;
+            right: 15px;
+            z-index: 20;
+
+            background: #fff0f0;
+            color: #900;
+
+            padding: 15px;
+            border-radius: 8px;
+
+            font-family: monospace;
+            white-space: pre-wrap;
         }
     </style>
+
+    <!-- Import map for Three.js -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+        }
+    }
+    </script>
+
 </head>
 
 <body>
 
-    <model-viewer
-        src="./model.glb"
-        alt="Sofa"
-        camera-controls
-        touch-action="pan-y"
-        shadow-intensity="1"
-        ar
-        ar-modes="webxr scene-viewer quick-look">
+    <div id="info">
+        Loading 3D model...
+    </div>
 
-        <button slot="ar-button" id="ar-button">
-            View in your space
-        </button>
+    <div id="error"></div>
 
-    </model-viewer>
+    <script type="module">
+
+        import * as THREE from 'three';
+
+        import { GLTFLoader }
+            from 'three/addons/loaders/GLTFLoader.js';
+
+
+        // --------------------------------------------------
+        // SCENE
+        // --------------------------------------------------
+
+        const scene = new THREE.Scene();
+
+        scene.background = new THREE.Color(0xeeeeee);
+
+
+        // --------------------------------------------------
+        // CAMERA
+        // --------------------------------------------------
+
+        const camera = new THREE.PerspectiveCamera(
+            45,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            100000
+        );
+
+        camera.position.set(3, 2, 5);
+
+
+        // --------------------------------------------------
+        // RENDERER
+        // --------------------------------------------------
+
+        const renderer = new THREE.WebGLRenderer({
+            antialias: true
+        });
+
+        renderer.setPixelRatio(window.devicePixelRatio);
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+        document.body.appendChild(renderer.domElement);
+
+
+        // --------------------------------------------------
+        // LIGHTING
+        // --------------------------------------------------
+
+        const ambientLight = new THREE.HemisphereLight(
+            0xffffff,
+            0x444444,
+            3
+        );
+
+        scene.add(ambientLight);
+
+
+        const directionalLight = new THREE.DirectionalLight(
+            0xffffff,
+            3
+        );
+
+        directionalLight.position.set(5, 10, 5);
+
+        scene.add(directionalLight);
+
+
+        // --------------------------------------------------
+        // LOAD GLB
+        // --------------------------------------------------
+
+        const loader = new GLTFLoader();
+
+        loader.load(
+
+            './model.glb',
+
+            function (gltf) {
+
+                console.log("GLB loaded successfully");
+
+                const model = gltf.scene;
+
+                scene.add(model);
+
+
+                // ------------------------------------------
+                // FIND MODEL BOUNDING BOX
+                // ------------------------------------------
+
+                const box = new THREE.Box3().setFromObject(model);
+
+                const center = box.getCenter(
+                    new THREE.Vector3()
+                );
+
+                const size = box.getSize(
+                    new THREE.Vector3()
+                );
+
+
+                // Move model so its center is at origin
+
+                model.position.sub(center);
+
+
+                // ------------------------------------------
+                // AUTO CAMERA POSITION
+                // ------------------------------------------
+
+                const maxDimension = Math.max(
+                    size.x,
+                    size.y,
+                    size.z
+                );
+
+                const distance = maxDimension * 2.5;
+
+
+                camera.position.set(
+                    distance,
+                    distance * 0.6,
+                    distance
+                );
+
+                camera.lookAt(0, 0, 0);
+
+
+                // ------------------------------------------
+                // SUCCESS MESSAGE
+                // ------------------------------------------
+
+                document.getElementById("info").innerText =
+                    "3D model loaded — drag to rotate";
+
+
+                console.log("Model dimensions:", size);
+
+            },
+
+            function (xhr) {
+
+                if (xhr.total) {
+
+                    const percent =
+                        (xhr.loaded / xhr.total) * 100;
+
+                    document.getElementById("info").innerText =
+                        "Loading model: " +
+                        percent.toFixed(0) +
+                        "%";
+
+                }
+
+            },
+
+            function (error) {
+
+                console.error(
+                    "GLB LOAD ERROR:",
+                    error
+                );
+
+                const errorBox =
+                    document.getElementById("error");
+
+                errorBox.style.display = "block";
+
+                errorBox.innerText =
+                    "GLB LOAD ERROR\n\n" +
+                    error.message;
+
+                document.getElementById("info").innerText =
+                    "Model failed to load";
+
+            }
+
+        );
+
+
+        // --------------------------------------------------
+        // SIMPLE MOUSE ROTATION
+        // --------------------------------------------------
+
+        let rotating = false;
+
+        let previousX = 0;
+
+        let rotationY = 0;
+
+
+        renderer.domElement.addEventListener(
+            "mousedown",
+            function (event) {
+
+                rotating = true;
+
+                previousX = event.clientX;
+
+            }
+        );
+
+
+        window.addEventListener(
+            "mouseup",
+            function () {
+
+                rotating = false;
+
+            }
+        );
+
+
+        window.addEventListener(
+            "mousemove",
+            function (event) {
+
+                if (!rotating) return;
+
+                const delta =
+                    event.clientX - previousX;
+
+                previousX = event.clientX;
+
+                rotationY += delta * 0.01;
+
+                scene.traverse(function (object) {
+
+                    if (object.isGroup &&
+                        object.children.length > 0) {
+
+                        object.rotation.y =
+                            rotationY;
+
+                    }
+
+                });
+
+            }
+        );
+
+
+        // --------------------------------------------------
+        // RESIZE
+        // --------------------------------------------------
+
+        window.addEventListener(
+            "resize",
+            function () {
+
+                camera.aspect =
+                    window.innerWidth /
+                    window.innerHeight;
+
+                camera.updateProjectionMatrix();
+
+                renderer.setSize(
+                    window.innerWidth,
+                    window.innerHeight
+                );
+
+            }
+        );
+
+
+        // --------------------------------------------------
+        // RENDER LOOP
+        // --------------------------------------------------
+
+        function animate() {
+
+            requestAnimationFrame(animate);
+
+            renderer.render(
+                scene,
+                camera
+            );
+
+        }
+
+        animate();
+
+    </script>
 
 </body>
 
