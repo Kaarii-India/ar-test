@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+
 <meta charset="UTF-8">
 
 <meta name="viewport"
@@ -29,7 +30,7 @@ html, body {
     left: 12px;
     right: 12px;
     z-index: 100;
-    background: rgba(255,255,255,.92);
+    background: rgba(255,255,255,.94);
     padding: 12px;
     border-radius: 10px;
     font-size: 14px;
@@ -69,11 +70,11 @@ html, body {
 #instruction {
     position: fixed;
     left: 50%;
-    bottom: 20px;
+    bottom: 22px;
     transform: translateX(-50%);
     z-index: 100;
     background: white;
-    padding: 13px 20px;
+    padding: 14px 20px;
     border-radius: 25px;
     font-weight: bold;
     box-shadow: 0 3px 12px rgba(0,0,0,.25);
@@ -89,13 +90,14 @@ html, body {
     z-index: 200;
     background: #fff0f0;
     color: #900;
-    padding: 12px;
+    padding: 14px;
     border-radius: 8px;
     font-family: monospace;
     white-space: pre-wrap;
 }
 
 </style>
+
 
 <script type="importmap">
 {
@@ -111,11 +113,14 @@ html, body {
 
 </head>
 
+
 <body>
+
 
 <div id="status">
     Loading...
 </div>
+
 
 <div id="products">
 
@@ -137,14 +142,17 @@ html, body {
 
 </div>
 
+
 <div id="instruction">
     Select a product.
 </div>
+
 
 <div id="error"></div>
 
 
 <script type="module">
+
 
 import * as THREE from 'three';
 
@@ -155,25 +163,37 @@ import { ARButton }
 from 'three/addons/webxr/ARButton.js';
 
 
+
 /* =====================================================
-   BASIC THREE.JS SETUP
+   THREE.JS
    ===================================================== */
 
-const scene = new THREE.Scene();
+const scene =
+    new THREE.Scene();
+
 
 const camera =
     new THREE.PerspectiveCamera(
+
         70,
-        window.innerWidth / window.innerHeight,
+
+        window.innerWidth /
+        window.innerHeight,
+
         0.01,
+
         1000
+
     );
 
 
 const renderer =
     new THREE.WebGLRenderer({
+
         antialias: true,
+
         alpha: true
+
     });
 
 
@@ -181,53 +201,66 @@ renderer.setPixelRatio(
     window.devicePixelRatio
 );
 
+
 renderer.setSize(
     window.innerWidth,
     window.innerHeight
 );
 
+
 renderer.outputColorSpace =
     THREE.SRGBColorSpace;
 
-renderer.xr.enabled = true;
+
+renderer.xr.enabled =
+    true;
+
 
 document.body.appendChild(
     renderer.domElement
 );
 
 
+
 /* =====================================================
-   LIGHT
+   LIGHTING
    ===================================================== */
 
-const light =
+scene.add(
+
     new THREE.HemisphereLight(
+
         0xffffff,
         0x444444,
         3
-    );
 
-scene.add(light);
+    )
+
+);
+
 
 
 /* =====================================================
-   PRODUCT STORAGE
+   PRODUCTS
    ===================================================== */
 
 const products = {};
 
 let selectedProduct = null;
 
-let placedObjects = [];
-
 
 /* =====================================================
    LOAD FBX
    ===================================================== */
 
-function loadFBX(name, filename) {
+function loadFBX(
+    name,
+    filename
+) {
 
-    const loader = new FBXLoader();
+    const loader =
+        new FBXLoader();
+
 
     loader.load(
 
@@ -236,27 +269,37 @@ function loadFBX(name, filename) {
         function(model) {
 
             /*
-             * FBX from your Autodesk workflow is
-             * being treated as centimetres.
+             * Autodesk FBX is being treated
+             * as centimetres.
              *
-             * This converts centimetres to metres.
+             * Convert cm → metres.
              */
 
             model.scale.set(
+
                 0.01,
                 0.01,
                 0.01
+
             );
 
-            model.visible = false;
 
-            products[name] = model;
+            model.visible =
+                false;
+
+
+            products[name] =
+                model;
+
 
             scene.add(model);
 
+
             document.getElementById(
                 name + "Button"
-            ).disabled = false;
+            ).disabled =
+                false;
+
 
             updateStatus();
 
@@ -266,15 +309,21 @@ function loadFBX(name, filename) {
 
             if (xhr.total) {
 
-                const p =
-                    (xhr.loaded / xhr.total) * 100;
+                const percent =
+
+                    (
+                        xhr.loaded /
+                        xhr.total
+                    ) * 100;
+
 
                 document.getElementById(
                     "status"
                 ).innerText =
+
                     name.toUpperCase() +
                     " loading " +
-                    p.toFixed(0) +
+                    percent.toFixed(0) +
                     "%";
 
             }
@@ -284,26 +333,39 @@ function loadFBX(name, filename) {
         function(error) {
 
             showError(
+
                 name.toUpperCase() +
                 " FBX FAILED\n\n" +
+
                 String(error)
+
             );
 
         }
 
     );
+
 }
 
+
+/*
+ * Cache-busting is intentional.
+ *
+ * If you replace sofa.fbx again,
+ * change ?v=2 to ?v=3.
+ */
 
 loadFBX(
     "sofa",
     "./sofa.fbx?v=2"
 );
 
+
 loadFBX(
     "table",
     "./table.fbx?v=2"
 );
+
 
 
 /* =====================================================
@@ -313,14 +375,16 @@ loadFBX(
 function updateStatus() {
 
     if (
+
         products.sofa &&
         products.table
+
     ) {
 
         document.getElementById(
             "status"
         ).innerText =
-            "Both FBX files loaded.";
+            "Both products loaded.";
 
         document.getElementById(
             "instruction"
@@ -333,7 +397,7 @@ function updateStatus() {
 
 
 /* =====================================================
-   ERROR DISPLAY
+   ERROR
    ===================================================== */
 
 function showError(message) {
@@ -343,96 +407,136 @@ function showError(message) {
             "error"
         );
 
-    box.style.display = "block";
+    box.style.display =
+        "block";
 
-    box.innerText = message;
+    box.innerText =
+        message;
 
 }
 
 
+
 /* =====================================================
-   PRODUCT BUTTONS
+   PRODUCT SELECTION
    ===================================================== */
 
 document
 .querySelectorAll(".product")
-.forEach(button => {
+.forEach(
 
-    button.addEventListener(
-        "click",
-        function() {
+    button => {
 
-            const name =
-                this.dataset.product;
+        button.addEventListener(
 
-            if (!products[name]) {
-                return;
-            }
+            "click",
 
-            selectedProduct = name;
+            function() {
 
-            document
-            .querySelectorAll(".product")
-            .forEach(b => {
-                b.classList.remove(
+                const name =
+                    this.dataset.product;
+
+
+                if (!products[name]) {
+
+                    return;
+
+                }
+
+
+                selectedProduct =
+                    name;
+
+
+                document
+                .querySelectorAll(".product")
+                .forEach(
+
+                    b => {
+
+                        b.classList.remove(
+                            "selected"
+                        );
+
+                    }
+
+                );
+
+
+                this.classList.add(
                     "selected"
                 );
-            });
 
-            this.classList.add(
-                "selected"
-            );
 
-            document.getElementById(
-                "instruction"
-            ).innerText =
-                "Move phone slowly over floor.";
+                document.getElementById(
+                    "status"
+                ).innerText =
 
-            document.getElementById(
-                "status"
-            ).innerText =
-                "Searching for a surface...";
+                    "Touch the floor where you want the " +
+                    name.toUpperCase();
 
-        }
-    );
 
-});
+                document.getElementById(
+                    "instruction"
+                ).innerText =
+
+                    "Tap the floor to place " +
+                    name.toUpperCase();
+
+            }
+
+        );
+
+    }
+
+);
+
 
 
 /* =====================================================
    RETICLE
    ===================================================== */
 
-const reticleGeometry =
-    new THREE.RingGeometry(
-        0.08,
-        0.105,
-        32
-    );
-
-const reticleMaterial =
-    new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        side: THREE.DoubleSide
-    });
-
 const reticle =
+
     new THREE.Mesh(
-        reticleGeometry,
-        reticleMaterial
+
+        new THREE.RingGeometry(
+
+            0.08,
+            0.105,
+            32
+
+        ),
+
+        new THREE.MeshBasicMaterial({
+
+            color: 0xffffff,
+
+            side:
+                THREE.DoubleSide
+
+        })
+
     );
 
 
 reticle.rotation.x =
     -Math.PI / 2;
 
+
 reticle.matrixAutoUpdate =
     false;
+
 
 reticle.visible =
     false;
 
-scene.add(reticle);
+
+scene.add(
+    reticle
+);
+
 
 
 /* =====================================================
@@ -440,22 +544,33 @@ scene.add(reticle);
    ===================================================== */
 
 const arButton =
+
     ARButton.createButton(
 
         renderer,
 
         {
+
             requiredFeatures: [
+
+                "local",
                 "hit-test"
+
             ],
 
             optionalFeatures: [
+
                 "dom-overlay"
+
             ],
 
             domOverlay: {
-                root: document.body
+
+                root:
+                    document.body
+
             }
+
         }
 
     );
@@ -466,55 +581,87 @@ document.body.appendChild(
 );
 
 
+
 /* =====================================================
-   AR SESSION
+   AR VARIABLES
    ===================================================== */
 
-let hitTestSource = null;
-
-let viewerReferenceSpace = null;
+let session = null;
 
 let localReferenceSpace = null;
 
+let viewerReferenceSpace = null;
+
+
+/*
+ * Normal continuous hit-test.
+ */
+
+let regularHitTestSource =
+    null;
+
+
+/*
+ * Touchscreen hit-test.
+ */
+
+let transientHitTestSource =
+    null;
+
+
+/*
+ * Most recent valid touch result.
+ */
+
+let lastTouchPose =
+    null;
+
+
+/*
+ * Most recent normal hit result.
+ */
+
+let lastRegularPose =
+    null;
+
+
+/*
+ * Most recent touch timestamp.
+ */
+
+let lastTouchTime =
+    0;
+
+
 
 /* =====================================================
-   SESSION START
+   AR SESSION START
    ===================================================== */
 
 renderer.xr.addEventListener(
+
     "sessionstart",
+
     async function() {
 
         try {
 
-            const session =
+            session =
                 renderer.xr.getSession();
 
 
             document.getElementById(
                 "status"
             ).innerText =
-                "AR started. Initialising surface detection...";
+                "AR started. Preparing touch placement...";
 
 
             /*
-             * Viewer space:
-             * follows the phone/camera.
-             */
-
-            viewerReferenceSpace =
-                await session
-                .requestReferenceSpace(
-                    "viewer"
-                );
-
-
-            /*
-             * Local space:
-             * becomes the stable AR world.
+             * Stable AR world.
              */
 
             localReferenceSpace =
+
                 await session
                 .requestReferenceSpace(
                     "local"
@@ -522,71 +669,184 @@ renderer.xr.addEventListener(
 
 
             /*
-             * IMPORTANT:
-             *
-             * Hit testing originates from
-             * the camera/viewer and finds
-             * real surfaces in front of it.
+             * Viewer space for normal
+             * hit testing.
              */
 
-            hitTestSource =
+            viewerReferenceSpace =
+
+                await session
+                .requestReferenceSpace(
+                    "viewer"
+                );
+
+
+            /*
+             * Normal continuous hit test.
+             */
+
+            regularHitTestSource =
+
                 await session
                 .requestHitTestSource({
 
                     space:
-                        viewerReferenceSpace
+                        viewerReferenceSpace,
+
+                    entityTypes: [
+
+                        "plane"
+
+                    ]
 
                 });
 
 
-            document.getElementById(
-                "status"
-            ).innerText =
-                "Surface detection active.";
+            /*
+             * =================================================
+             * TOUCHSCREEN HIT TEST
+             * =================================================
+             *
+             * This is the important new part.
+             *
+             * The browser calculates the ray from the
+             * actual touchscreen touch location.
+             *
+             * We don't have to guess where that point
+             * exists in 3D.
+             */
+
+            if (
+
+                typeof session
+                .requestHitTestSourceForTransientInput
+                === "function"
+
+            ) {
+
+                transientHitTestSource =
+
+                    await session
+                    .requestHitTestSourceForTransientInput({
+
+                        profile:
+                            "generic-touchscreen",
+
+                        entityTypes: [
+
+                            "plane"
+
+                        ]
+
+                    });
+
+
+                document.getElementById(
+                    "status"
+                ).innerText =
+
+                    "Touch placement ready.";
+
+            }
+
+            else {
+
+                /*
+                 * This tells us immediately if the
+                 * phone/browser doesn't expose the
+                 * transient touchscreen API.
+                 */
+
+                document.getElementById(
+                    "status"
+                ).innerText =
+
+                    "Touch hit-test unavailable on this browser.";
+
+            }
+
 
             document.getElementById(
                 "instruction"
             ).innerText =
-                "Move phone slowly over the floor.";
+
+                "Select SOFA or TABLE.";
 
         }
 
         catch(error) {
 
             showError(
-                "AR INITIALISATION FAILED\n\n" +
+
+                "AR SETUP ERROR\n\n" +
+
                 error.message
+
             );
 
         }
 
     }
+
 );
+
 
 
 /* =====================================================
-   SESSION END
+   AR SESSION END
    ===================================================== */
 
 renderer.xr.addEventListener(
+
     "sessionend",
+
     function() {
 
-        hitTestSource = null;
+        if (
+            regularHitTestSource
+        ) {
 
-        viewerReferenceSpace = null;
+            regularHitTestSource.cancel();
 
-        localReferenceSpace = null;
+        }
 
-        reticle.visible = false;
 
-        document.getElementById(
-            "status"
-        ).innerText =
-            "AR session ended.";
+        if (
+            transientHitTestSource
+        ) {
+
+            transientHitTestSource.cancel();
+
+        }
+
+
+        session =
+            null;
+
+
+        regularHitTestSource =
+            null;
+
+
+        transientHitTestSource =
+            null;
+
+
+        lastTouchPose =
+            null;
+
+
+        lastRegularPose =
+            null;
+
+
+        reticle.visible =
+            false;
 
     }
+
 );
+
 
 
 /* =====================================================
@@ -596,182 +856,507 @@ renderer.xr.addEventListener(
 const controller =
     renderer.xr.getController(0);
 
-scene.add(controller);
+
+scene.add(
+    controller
+);
+
 
 
 /* =====================================================
-   TAP = PLACE
+   SELECT EVENT
    ===================================================== */
 
 controller.addEventListener(
+
     "select",
+
     function() {
 
-        if (!selectedProduct) {
-
-            document.getElementById(
-                "instruction"
-            ).innerText =
-                "Select SOFA or TABLE first.";
-
-            return;
-        }
-
-
-        if (!reticle.visible) {
-
-            document.getElementById(
-                "instruction"
-            ).innerText =
-                "No surface detected yet.";
-
-            return;
-        }
-
-
         /*
-         * Clone the selected FBX.
+         * We normally won't use this event
+         * for placement.
+         *
+         * The touchscreen hit-test below
+         * handles placement directly.
          */
 
-        const object =
-            products[selectedProduct]
-            .clone(true);
+    }
+
+);
 
 
-        object.visible = true;
+
+/* =====================================================
+   TOUCHSCREEN HIT TEST
+   ===================================================== */
+
+function processTouchHitTest(frame) {
+
+    if (
+        !transientHitTestSource
+    ) {
+
+        return;
+
+    }
 
 
-        /*
-         * Copy the exact detected
-         * AR-world position.
-         */
+    /*
+     * Get results for the touchscreen
+     * input source.
+     */
 
-        object.position.setFromMatrixPosition(
-            reticle.matrix
+    const results =
+
+        frame.getHitTestResultsForTransientInput(
+
+            transientHitTestSource
+
         );
 
 
-        /*
-         * Start at the FBX's converted
-         * scale.
-         */
+    if (
+        !results ||
+        results.length === 0
+    ) {
 
-        object.scale.set(
-            1,
-            1,
-            1
+        return;
+
+    }
+
+
+    /*
+     * There may be more than one
+     * transient input source.
+     *
+     * We use the first one.
+     */
+
+    const inputResult =
+        results[0];
+
+
+    if (
+        !inputResult.results ||
+        inputResult.results.length === 0
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * First result is the closest
+     * detected surface.
+     */
+
+    const hit =
+        inputResult.results[0];
+
+
+    const pose =
+        hit.getPose(
+            localReferenceSpace
         );
 
 
-        /*
-         * Keep the object in the scene.
-         */
+    if (
+        !pose
+    ) {
 
-        scene.add(object);
+        return;
 
-        placedObjects.push(object);
+    }
 
+
+    /*
+     * Save the pose.
+
+     * This is the EXACT real-world point
+     * touched by the user.
+     */
+
+    lastTouchPose =
+        pose;
+
+
+    lastTouchTime =
+        performance.now();
+
+
+    /*
+     * Show the placement marker.
+     */
+
+    reticle.visible =
+        true;
+
+
+    reticle.matrix.fromArray(
+        pose.transform.matrix
+    );
+
+
+    if (
+        selectedProduct
+    ) {
 
         document.getElementById(
             "status"
         ).innerText =
-            selectedProduct.toUpperCase() +
-            " PLACED.";
+
+            "SURFACE FOUND — RELEASE TO PLACE";
+
 
         document.getElementById(
             "instruction"
         ).innerText =
-            "Move phone around. Object should stay.";
+
+            "Release your finger to place " +
+            selectedProduct.toUpperCase();
 
     }
-);
+
+}
+
 
 
 /* =====================================================
-   XR RENDER LOOP
+   PLACE OBJECT
    ===================================================== */
 
-renderer.setAnimationLoop(
-    function(timestamp, frame) {
+function placeSelectedObject(pose) {
+
+    if (
+        !selectedProduct ||
+        !pose
+    ) {
+
+        return;
+
+    }
+
+
+    const source =
+        products[selectedProduct];
+
+
+    if (
+        !source
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Create independent copy.
+     */
+
+    const object =
+        source.clone(true);
+
+
+    object.visible =
+        true;
+
+
+    /*
+     * Copy exact world position.
+     */
+
+    object.position.setFromMatrixPosition(
+
+        new THREE.Matrix4()
+        .fromArray(
+            pose.transform.matrix
+        )
+
+    );
+
+
+    /*
+     * Copy orientation from the AR
+     * surface pose.
+
+     * But we only want the floor's
+     * horizontal orientation.
+
+     */
+
+    const matrix =
+        new THREE.Matrix4()
+        .fromArray(
+            pose.transform.matrix
+        );
+
+
+    const quaternion =
+        new THREE.Quaternion();
+
+
+    quaternion.setFromRotationMatrix(
+        matrix
+    );
+
+
+    object.quaternion.copy(
+        quaternion
+    );
+
+
+    /*
+     * Add object to AR scene.
+     */
+
+    scene.add(
+        object
+    );
+
+
+    /*
+     * Make it the current object.
+     */
+
+    object.userData.product =
+        selectedProduct;
+
+
+    object.userData.arPlaced =
+        true;
+
+
+    /*
+     * Clear placement marker.
+     */
+
+    reticle.visible =
+        false;
+
+
+    /*
+     * IMPORTANT:
+     *
+     * We do NOT update this object's
+     * position every frame.
+     *
+     * Therefore it remains where it
+     * was physically placed.
+     */
+
+    document.getElementById(
+        "status"
+    ).innerText =
+
+        selectedProduct.toUpperCase() +
+        " PLACED";
+
+
+    document.getElementById(
+        "instruction"
+    ).innerText =
+
+        "Object placed. Select another product.";
+
+}
+
+
+
+/* =====================================================
+   TOUCH START
+   ===================================================== */
+
+renderer.domElement.addEventListener(
+
+    "touchstart",
+
+    function() {
 
         /*
-         * No AR frame = normal render.
+         * Clear the previous touch result
+         * so an old position cannot be reused.
          */
 
-        if (
-            frame &&
-            hitTestSource &&
-            localReferenceSpace
-        ) {
-
-            const results =
-                frame.getHitTestResults(
-                    hitTestSource
-                );
+        lastTouchPose =
+            null;
 
 
-            if (results.length > 0) {
+        lastTouchTime =
+            performance.now();
 
-                const hit =
-                    results[0];
+    },
+
+    {
+        passive: true
+    }
+
+);
 
 
-                const pose =
-                    hit.getPose(
-                        localReferenceSpace
+
+/* =====================================================
+   TOUCH END
+   ===================================================== */
+
+renderer.domElement.addEventListener(
+
+    "touchend",
+
+    function() {
+
+        /*
+         * Give the XR frame a tiny amount
+         * of time to deliver the final
+         * touchscreen hit-test result.
+         */
+
+        setTimeout(
+
+            function() {
+
+                if (
+                    lastTouchPose &&
+                    performance.now() -
+                    lastTouchTime
+                    < 500
+                ) {
+
+                    placeSelectedObject(
+                        lastTouchPose
                     );
 
+                }
 
-                if (pose) {
-
-                    /*
-                     * A REAL SURFACE HAS BEEN
-                     * DETECTED.
-                     */
-
-                    reticle.visible = true;
-
-
-                    reticle.matrix.fromArray(
-                        pose.transform.matrix
-                    );
-
+                else {
 
                     document.getElementById(
                         "status"
                     ).innerText =
-                        "SURFACE DETECTED — TAP TO PLACE";
+
+                        "No surface found at that touch.";
+
+                }
+
+            },
+
+            50
+
+        );
+
+    },
+
+    {
+        passive: true
+    }
+
+);
 
 
-                    if (selectedProduct) {
 
-                        document.getElementById(
-                            "instruction"
-                        ).innerText =
-                            "Tap the floor to place " +
-                            selectedProduct.toUpperCase();
+/* =====================================================
+   XR FRAME LOOP
+   ===================================================== */
+
+renderer.setAnimationLoop(
+
+    function(
+
+        timestamp,
+        frame
+
+    ) {
+
+
+        if (
+            frame
+        ) {
+
+
+            /*
+             * ---------------------------------------------
+             * NORMAL HIT TEST
+             * ---------------------------------------------
+             */
+
+            if (
+
+                regularHitTestSource &&
+                localReferenceSpace
+
+            ) {
+
+                const results =
+
+                    frame.getHitTestResults(
+                        regularHitTestSource
+                    );
+
+
+                if (
+                    results.length > 0
+                ) {
+
+                    const pose =
+
+                        results[0].getPose(
+                            localReferenceSpace
+                        );
+
+
+                    if (
+                        pose
+                    ) {
+
+                        lastRegularPose =
+                            pose;
+
+
+                        /*
+                         * Only show the normal
+                         * reticle when we don't
+                         * already have a touch
+                         * result.
+                         */
+
+                        if (
+                            !lastTouchPose
+                        ) {
+
+                            reticle.visible =
+                                true;
+
+
+                            reticle.matrix
+                                .fromArray(
+                                    pose.transform.matrix
+                                );
+
+                        }
 
                     }
 
                 }
 
             }
-            else {
 
-                /*
-                 * Nothing detected.
-                 */
 
-                reticle.visible = false;
 
-                if (selectedProduct) {
+            /*
+             * ---------------------------------------------
+             * TOUCH HIT TEST
+             * ---------------------------------------------
+             */
 
-                    document.getElementById(
-                        "status"
-                    ).innerText =
-                        "Searching for surface...";
+            if (
+                transientHitTestSource
+            ) {
 
-                }
+                processTouchHitTest(
+                    frame
+                );
 
             }
 
@@ -784,7 +1369,9 @@ renderer.setAnimationLoop(
         );
 
     }
+
 );
+
 
 
 /* =====================================================
@@ -792,24 +1379,34 @@ renderer.setAnimationLoop(
    ===================================================== */
 
 window.addEventListener(
+
     "resize",
+
     function() {
 
         camera.aspect =
+
             window.innerWidth /
             window.innerHeight;
 
+
         camera.updateProjectionMatrix();
 
+
         renderer.setSize(
+
             window.innerWidth,
             window.innerHeight
+
         );
 
     }
+
 );
+
 
 </script>
 
 </body>
+
 </html>
