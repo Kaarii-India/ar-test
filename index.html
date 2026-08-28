@@ -1,149 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
 <meta charset="UTF-8">
-
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
-
-<title>Furniture AR Test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AR Furniture Test</title>
 
 <style>
+    html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background: #222;
+    }
 
-html, body {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #eeeeee;
-    font-family: Arial, sans-serif;
-}
+    #info {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 20;
+        background: white;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 14px;
+    }
 
-#info {
-    position: fixed;
-    top: 15px;
-    left: 15px;
-    z-index: 20;
+    #products {
+        position: fixed;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 20;
 
-    background: white;
-    padding: 10px 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
 
-    border-radius: 8px;
+    .product {
+        width: 90px;
+        padding: 15px 8px;
 
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        border: none;
+        border-radius: 10px;
 
-    font-size: 14px;
-}
+        background: white;
 
-#ar-instruction {
-    display: none;
+        font-weight: bold;
+        font-size: 14px;
 
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
+        box-shadow: 0 3px 10px rgba(0,0,0,.25);
+    }
 
-    transform: translateX(-50%);
+    .product.selected {
+        outline: 3px solid #333;
+    }
 
-    z-index: 20;
+    #instruction {
+        display: none;
 
-    background: white;
-    padding: 14px 20px;
+        position: fixed;
+        bottom: 25px;
+        left: 50%;
+        transform: translateX(-50%);
 
-    border-radius: 25px;
+        z-index: 20;
 
-    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+        background: white;
+        padding: 12px 18px;
 
-    font-weight: bold;
-}
+        border-radius: 25px;
 
-#error {
-    display: none;
+        font-weight: bold;
 
-    position: fixed;
-    top: 70px;
-    left: 15px;
-    right: 15px;
+        box-shadow: 0 3px 12px rgba(0,0,0,.25);
 
-    z-index: 30;
+        white-space: nowrap;
+    }
 
-    background: #fff0f0;
-    color: #900;
+    #error {
+        display: none;
 
-    padding: 15px;
+        position: fixed;
+        top: 70px;
+        left: 15px;
+        right: 15px;
 
-    border-radius: 8px;
+        z-index: 30;
 
-    font-family: monospace;
+        background: #fff0f0;
+        color: #900;
 
-    white-space: pre-wrap;
-}
+        padding: 15px;
 
+        border-radius: 8px;
+
+        font-family: monospace;
+
+        white-space: pre-wrap;
+    }
 </style>
 
-
 <script type="importmap">
-
 {
     "imports": {
-
         "three":
-        "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+            "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
 
         "three/addons/":
-        "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-
+            "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
     }
 }
-
 </script>
-
 </head>
-
 
 <body>
 
-
 <div id="info">
-    Loading furniture...
+    Loading products...
 </div>
 
+<div id="products">
 
-<div id="ar-instruction">
-    Move your phone to find the floor, then tap to place.
+    <button class="product" data-product="sofa">
+        SOFA
+    </button>
+
+    <button class="product" data-product="table">
+        TABLE
+    </button>
+
 </div>
 
+<div id="instruction">
+    Move your phone until the floor is detected.
+</div>
 
 <div id="error"></div>
 
 
 <script type="module">
 
-
 import * as THREE from 'three';
 
 import { FBXLoader }
 from 'three/addons/loaders/FBXLoader.js';
 
-import { OrbitControls }
-from 'three/addons/controls/OrbitControls.js';
-
 import { ARButton }
 from 'three/addons/webxr/ARButton.js';
 
 
-// ==================================================
+// =====================================================
 // SCENE
-// ==================================================
+// =====================================================
 
 const scene =
     new THREE.Scene();
 
 
-// ==================================================
+// =====================================================
 // CAMERA
-// ==================================================
+// =====================================================
 
 const camera =
     new THREE.PerspectiveCamera(
@@ -155,19 +173,15 @@ const camera =
     );
 
 
-// ==================================================
+// =====================================================
 // RENDERER
-// ==================================================
+// =====================================================
 
 const renderer =
     new THREE.WebGLRenderer({
-
         antialias: true,
-
         alpha: true
-
     });
-
 
 renderer.setPixelRatio(
     window.devicePixelRatio
@@ -181,32 +195,24 @@ renderer.setSize(
 renderer.outputColorSpace =
     THREE.SRGBColorSpace;
 
-
-// IMPORTANT FOR AR
-
 renderer.xr.enabled = true;
-
 
 document.body.appendChild(
     renderer.domElement
 );
 
 
-// ==================================================
-// LIGHTING
-// ==================================================
+// =====================================================
+// LIGHTS
+// =====================================================
 
-const hemisphere =
+scene.add(
     new THREE.HemisphereLight(
         0xffffff,
         0x555555,
         3
-    );
-
-scene.add(
-    hemisphere
+    )
 );
-
 
 const directional =
     new THREE.DirectionalLight(
@@ -215,9 +221,7 @@ const directional =
     );
 
 directional.position.set(
-    5,
-    10,
-    5
+    5, 10, 5
 );
 
 scene.add(
@@ -225,261 +229,230 @@ scene.add(
 );
 
 
-// ==================================================
-// DESKTOP CONTROLS
-// ==================================================
+// =====================================================
+// PRODUCT STORAGE
+// =====================================================
 
-const controls =
-    new OrbitControls(
-        camera,
-        renderer.domElement
-    );
+const products = {};
 
-controls.enableDamping =
-    true;
+let selectedProduct = null;
 
 
-// ==================================================
-// MODEL
-// ==================================================
+// =====================================================
+// LOAD PRODUCT
+// =====================================================
 
-let furniture = null;
+function loadProduct(
+    name,
+    filename
+) {
 
+    const loader =
+        new FBXLoader();
 
-// ==================================================
-// LOAD FBX
-// ==================================================
+    loader.load(
 
-const loader =
-    new FBXLoader();
+        filename,
 
+        function(model) {
 
-loader.load(
+            console.log(
+                name +
+                " loaded"
+            );
 
-    './model.fbx',
+            // -----------------------------------------
+            // SCALE
+            // -----------------------------------------
 
-
-    function(model) {
-
-        console.log(
-            "FBX loaded",
-            model
-        );
-
-
-        furniture =
-            model;
-
-
-        // ------------------------------------------
-        // GET ORIGINAL SIZE
-        // ------------------------------------------
-
-        const box =
-            new THREE.Box3()
-                .setFromObject(
-                    furniture
-                );
-
-
-        const size =
-            box.getSize(
-                new THREE.Vector3()
+            model.scale.set(
+                0.001,
+                0.001,
+                0.001
             );
 
 
-        const center =
-            box.getCenter(
-                new THREE.Vector3()
+            // -----------------------------------------
+            // HIDE UNTIL SELECTED
+            // -----------------------------------------
+
+            model.visible = false;
+
+
+            // -----------------------------------------
+            // STORE
+            // -----------------------------------------
+
+            products[name] =
+                model;
+
+            scene.add(
+                model
             );
 
-
-        console.log(
-            "Original dimensions:",
-            size
-        );
-
-
-        // ------------------------------------------
-        // IMPORTANT
-        //
-        // Autodesk furniture models are commonly
-        // exported in millimetres.
-        //
-        // Convert mm → metres for AR.
-        // ------------------------------------------
-
-        furniture.scale.set(
-            0.001,
-            0.001,
-            0.001
-        );
-
-
-        // ------------------------------------------
-        // Recalculate bounds after scaling
-        // ------------------------------------------
-
-        const scaledBox =
-            new THREE.Box3()
-                .setFromObject(
-                    furniture
-                );
-
-
-        const scaledCenter =
-            scaledBox.getCenter(
-                new THREE.Vector3()
-            );
-
-
-        // Center X/Z
-
-        furniture.position.x -=
-            scaledCenter.x;
-
-        furniture.position.z -=
-            scaledCenter.z;
-
-
-        // Put bottom on Y = 0
-
-        furniture.position.y -=
-            scaledBox.min.y;
-
-
-        scene.add(
-            furniture
-        );
-
-
-        // ------------------------------------------
-        // DESKTOP CAMERA
-        // ------------------------------------------
-
-        const scaledSize =
-            scaledBox.getSize(
-                new THREE.Vector3()
-            );
-
-
-        const maxDimension =
-            Math.max(
-                scaledSize.x,
-                scaledSize.y,
-                scaledSize.z
-            );
-
-
-        camera.position.set(
-            maxDimension * 2.2,
-            maxDimension * 1.2,
-            maxDimension * 2.2
-        );
-
-
-        controls.target.set(
-            0,
-            scaledSize.y / 2,
-            0
-        );
-
-
-        controls.update();
-
-
-        document.getElementById(
-            "info"
-        ).innerText =
-            "FBX loaded — AR button available";
-
-
-        console.log(
-            "AR dimensions in metres:",
-            scaledSize
-        );
-
-
-    },
-
-
-    function(xhr) {
-
-        if (xhr.total) {
 
             document.getElementById(
                 "info"
             ).innerText =
-                "Loading: " +
-                (
-                    xhr.loaded /
-                    xhr.total *
-                    100
-                ).toFixed(0) +
-                "%";
+                "Products ready";
+
+
+        },
+
+        undefined,
+
+        function(error) {
+
+            console.error(
+                name +
+                " load error",
+                error
+            );
+
+            document.getElementById(
+                "error"
+            ).style.display =
+                "block";
+
+            document.getElementById(
+                "error"
+            ).innerText +=
+                name +
+                " failed to load\n\n" +
+                error.message +
+                "\n\n";
 
         }
 
-    },
+    );
+
+}
 
 
-    function(error) {
+// =====================================================
+// LOAD BOTH
+// =====================================================
 
-        console.error(
-            "FBX ERROR",
-            error
-        );
+loadProduct(
+    "sofa",
+    "./sofa.fbx"
+);
 
-
-        const errorBox =
-            document.getElementById(
-                "error"
-            );
-
-
-        errorBox.style.display =
-            "block";
-
-
-        errorBox.innerText =
-            "FBX ERROR\n\n" +
-            (
-                error.message ||
-                String(error)
-            );
-
-
-        document.getElementById(
-            "info"
-        ).innerText =
-            "FBX failed";
-
-    }
-
+loadProduct(
+    "table",
+    "./table.fbx"
 );
 
 
-// ==================================================
+// =====================================================
+// PRODUCT BUTTONS
+// =====================================================
+
+document
+.querySelectorAll(".product")
+.forEach(
+    button => {
+
+        button.addEventListener(
+            "click",
+            function() {
+
+                const name =
+                    this.dataset.product;
+
+
+                if (!products[name]) {
+
+                    alert(
+                        "Product is still loading."
+                    );
+
+                    return;
+
+                }
+
+
+                selectedProduct =
+                    products[name];
+
+
+                // Hide all products
+
+                Object.values(
+                    products
+                ).forEach(
+                    p => {
+                        p.visible = false;
+                    }
+                );
+
+
+                // Show selected
+
+                selectedProduct.visible =
+                    true;
+
+
+                // Start with model
+                // at origin
+
+                selectedProduct.position.set(
+                    0,
+                    0,
+                    0
+                );
+
+
+                // Highlight button
+
+                document
+                .querySelectorAll(".product")
+                .forEach(
+                    b => {
+                        b.classList.remove(
+                            "selected"
+                        );
+                    }
+                );
+
+
+                this.classList.add(
+                    "selected"
+                );
+
+
+                document.getElementById(
+                    "instruction"
+                ).innerText =
+                    "Move phone to find floor, then tap to place.";
+
+            }
+
+        );
+
+    }
+);
+
+
+// =====================================================
 // AR BUTTON
-// ==================================================
+// =====================================================
 
 const arButton =
     ARButton.createButton(
         renderer,
         {
-
             requiredFeatures: [
-                'hit-test'
+                "hit-test"
             ],
 
             optionalFeatures: [
-                'dom-overlay'
+                "dom-overlay"
             ],
 
             domOverlay: {
                 root: document.body
             }
-
         }
     );
 
@@ -489,9 +462,9 @@ document.body.appendChild(
 );
 
 
-// ==================================================
-// AR RETICLE
-// ==================================================
+// =====================================================
+// RETICLE
+// =====================================================
 
 const reticle =
     new THREE.Mesh(
@@ -508,100 +481,82 @@ const reticle =
 
     );
 
-
 reticle.rotation.x =
     -Math.PI / 2;
-
 
 reticle.matrixAutoUpdate =
     false;
 
-
 reticle.visible =
     false;
-
 
 scene.add(
     reticle
 );
 
 
-// ==================================================
-// AR HIT TEST
-// ==================================================
-
-let hitTestSource =
-    null;
-
-let hitTestSourceRequested =
-    false;
-
-
-// ==================================================
+// =====================================================
 // AR CONTROLLER
-// ==================================================
+// =====================================================
 
 const controller =
     renderer.xr.getController(
         0
     );
 
-
 scene.add(
     controller
 );
 
 
-// ==================================================
+// =====================================================
 // TAP TO PLACE
-// ==================================================
+// =====================================================
 
 controller.addEventListener(
-    'select',
+    "select",
     function() {
 
         if (
-            !reticle.visible ||
-            !furniture
+            !selectedProduct ||
+            !reticle.visible
         ) {
             return;
         }
 
 
-        // Place furniture
-        // on detected surface
+        // Copy reticle position
 
-        furniture.position.set(
-            0,
-            0,
-            0
-        );
-
-
-        furniture.matrix.copy(
+        selectedProduct.position.setFromMatrixPosition(
             reticle.matrix
         );
 
 
-        furniture.matrixAutoUpdate =
-            false;
+        // Put model on floor
+
+        selectedProduct.position.y =
+            0;
+
+
+        selectedProduct.visible =
+            true;
 
 
         document.getElementById(
-            "ar-instruction"
+            "instruction"
         ).innerText =
-            "Furniture placed";
+            "Placed. Select another product.";
 
     }
 );
 
 
-// ==================================================
+// =====================================================
 // XR SESSION
-// ==================================================
+// =====================================================
 
 renderer.xr.addEventListener(
-    'sessionstart',
+    "sessionstart",
     function() {
 
         document.getElementById(
@@ -609,9 +564,8 @@ renderer.xr.addEventListener(
         ).style.display =
             "none";
 
-
         document.getElementById(
-            "ar-instruction"
+            "instruction"
         ).style.display =
             "block";
 
@@ -619,39 +573,15 @@ renderer.xr.addEventListener(
 );
 
 
-renderer.xr.addEventListener(
-    'sessionend',
-    function() {
+// =====================================================
+// HIT TEST
+// =====================================================
 
-        hitTestSourceRequested =
-            false;
+let hitTestSource = null;
 
-        hitTestSource =
-            null;
+let hitTestSourceRequested =
+    false;
 
-
-        reticle.visible =
-            false;
-
-
-        document.getElementById(
-            "info"
-        ).style.display =
-            "block";
-
-
-        document.getElementById(
-            "ar-instruction"
-        ).style.display =
-            "none";
-
-    }
-);
-
-
-// ==================================================
-// RENDER LOOP
-// ==================================================
 
 renderer.setAnimationLoop(
     function(
@@ -659,37 +589,35 @@ renderer.setAnimationLoop(
         frame
     ) {
 
-
         if (
             frame &&
             renderer.xr.isPresenting
         ) {
 
-
             const session =
                 renderer.xr.getSession();
 
-
             const referenceSpace =
-                renderer.xr
-                    .getReferenceSpace();
+                renderer.xr.getReferenceSpace();
 
 
             if (
                 !hitTestSourceRequested
             ) {
 
-                session.requestReferenceSpace(
-                    'viewer'
+                session
+                .requestReferenceSpace(
+                    "viewer"
                 )
                 .then(
                     function(
-                        referenceSpace
+                        viewerSpace
                     ) {
 
-                        session.requestHitTestSource({
+                        session
+                        .requestHitTestSource({
                             space:
-                                referenceSpace
+                                viewerSpace
                         })
                         .then(
                             function(
@@ -706,42 +634,26 @@ renderer.setAnimationLoop(
                 );
 
 
-                session.addEventListener(
-                    'end',
-                    function() {
-
-                        hitTestSourceRequested =
-                            false;
-
-                        hitTestSource =
-                            null;
-
-                    }
-                );
-
-
                 hitTestSourceRequested =
                     true;
 
             }
 
 
-            if (
-                hitTestSource
-            ) {
+            if (hitTestSource) {
 
-                const hitTestResults =
+                const results =
                     frame.getHitTestResults(
                         hitTestSource
                     );
 
 
                 if (
-                    hitTestResults.length
+                    results.length > 0
                 ) {
 
                     const hit =
-                        hitTestResults[0];
+                        results[0];
 
 
                     const pose =
@@ -780,21 +692,19 @@ renderer.setAnimationLoop(
 );
 
 
-// ==================================================
+// =====================================================
 // RESIZE
-// ==================================================
+// =====================================================
 
 window.addEventListener(
-    'resize',
+    "resize",
     function() {
 
         camera.aspect =
             window.innerWidth /
             window.innerHeight;
 
-
         camera.updateProjectionMatrix();
-
 
         renderer.setSize(
             window.innerWidth,
@@ -804,9 +714,7 @@ window.addEventListener(
     }
 );
 
-
 </script>
 
 </body>
-
 </html>
