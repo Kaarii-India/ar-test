@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FBX → GLB Converter</title>
+
+<style>
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Arial, sans-serif;
+        background: #f4f4f4;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .card {
+        width: min(900px, 94vw);
+        background: white;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 6px 30px rgba(0,0,0,.12);
+    }
+
+    h1 { margin: 0 0 8px; }
+    p { color: #555; }
+
+    .drop {
+        margin-top: 24px;
+        padding: 45px 20px;
+        border: 2px dashed #aaa;
+        border-radius: 12px;
+        text-align: center;
+        cursor: pointer;
+        background: #fafafa;
+    }
+
+    .drop.dragover {
+        border-color: #333;
+        background: #eee;
+    }
+
+    input { display: none; }
+
+    button {
+        border: 0;
+        border-radius: 8px;
+        padding: 13px 20px;
+        font-size: 15px;
+        cursor: pointer;
+        margin: 8px 6px 0 0;
+    }
+
+    #convert {
+        background: #222;
+        color: white;
+    }
+
+    #download {
+        background: #1f7a3f;
+        color: white;
+        display: none;
+    }
+
+    button:disabled {
+        opacity: .45;
+        cursor: not-allowed;
+    }
+
+    #status {
+        margin-top: 20px;
+        padding: 14px;
+        border-radius: 8px;
+        background: #f0f0f0;
+        white-space: pre-wrap;
+        font-family: Consolas, monospace;
+        font-size: 13px;
+    }
+
+    #viewer {
+        margin-top: 20px;
+        width: 100%;
+        height: 420px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #ddd;
+    }
+</style>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+}
+</script>
+</head>
+
+<body>
+
+<div class="card">
+    <h1>FBX → GLB Converter</h1>
+    <p>
+        Select your original Autodesk FBX. The file is processed locally in
+        your browser and exported as a standard binary GLB.
+    </p>
+
+    <label class="drop" id="drop">
+        <strong>Click here to choose an FBX</strong><br>
+        or drag and drop the FBX here
+        <input type="file" id="file" accept=".fbx">
+    </label>
+
+    <div>
+        <button id="convert" disabled>Convert to GLB</button>
+        <button id="download">Download GLB</button>
+    </div>
+
+    <div id="status">Waiting for FBX...</div>
+
+    <div id="viewer"></div>
+</div>
+
+<script type="module">
+
+import * as THREE from 'three';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const fileInput = document.getElementById('file');
+const drop = document.getElementById('drop');
+const convertButton = document.getElementById('convert');
+const downloadButton = document.getElementById('download');
+const status = document.getElementById('status');
+const viewer = document.getElementById('viewer');
+
+let loadedModel = null;
+let exportedBlob = null;
+
+// ---------- Viewer ----------
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xdddddd);
+
+const camera = new THREE.PerspectiveCamera(
+    45,
+    viewer.clientWidth / viewer.clientHeight,
+    0.01,
+    100000
+);
+camera.position.set(4, 3, 5);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+viewer.appendChild(renderer.domElement);
+
+const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 3);
+scene.add(hemi);
+
+const dir = new THREE.DirectionalLight(0xffffff, 4);
+dir.position.set(5, 10, 5);
+scene.add(dir);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+    camera.aspect = viewer.clientWidth / viewer.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+});
+
+// ---------- File selection ----------
+
+function selectFile(file) {
+    if (!file || !file.name.toLowerCase().endsWith('.fbx')) {
+        status.textContent = 'Please select an .fbx file.';
+        return;
+    }
+
+    status.textContent = 'Reading FBX...';
+
+    const url = URL.createObjectURL(file);
+    const loader = new FBXLoader();
+
+    loader.load(
+        url,
+        (model) => {
+            URL.revokeObjectURL(url);
+
+            if (loadedModel) {
+                scene.remove(loadedModel);
+            }
+
+            loadedModel = model;
+            scene.add(model);
+
+            // Center model for preview/export.
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            model.position.sub(center);
+
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+
+            camera.position.set(
+                maxDim * 2.2,
+                maxDim * 1.2,
+                maxDim * 2.2
+            );
+
+            controls.target.set(0, 0, 0);
+            controls.update();
+
+            status.textContent =
+                'FBX loaded successfully.\n\n' +
+                'Dimensions: ' +
+                size.x.toFixed(2) + ' × ' +
+                size.y.toFixed(2) + ' × ' +
+                size.z.toFixed(2) + '\n\n' +
+                'Ready to convert.';
+
+            convertButton.disabled = false;
+            downloadButton.style.display = 'none';
+            exportedBlob = null;
+        },
+        (xhr) => {
+            if (xhr.total) {
+                status.textContent =
+                    'Loading FBX: ' +
+                    ((xhr.loaded / xhr.total) * 100).toFixed(0) +
+                    '%';
+            }
+        },
+        (error) => {
+            URL.revokeObjectURL(url);
+            console.error(error);
+            status.textContent =
+                'FBX LOAD ERROR:\n\n' +
+                (error?.message || String(error));
+        }
+    );
+}
+
+fileInput.addEventListener('change', () => {
+    selectFile(fileInput.files[0]);
+});
+
+drop.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    drop.classList.add('dragover');
+});
+
+drop.addEventListener('dragleave', () => {
+    drop.classList.remove('dragover');
+});
+
+drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    drop.classList.remove('dragover');
+    selectFile(e.dataTransfer.files[0]);
+});
+
+// ---------- Convert ----------
+
+convertButton.addEventListener('click', async () => {
+
+    if (!loadedModel) return;
+
+    convertButton.disabled = true;
+    downloadButton.style.display = 'none';
+
+    status.textContent =
+        'Converting FBX scene to GLB...\n' +
+        'Please wait.';
+
+    try {
+
+        const exporter = new GLTFExporter();
+
+        const options = {
+            binary: true,
+            trs: false,
+            onlyVisible: false,
+            truncateDrawRange: true,
+            embedImages: true,
+            maxTextureSize: 4096
+        };
+
+        const result = await new Promise((resolve, reject) => {
+
+            exporter.parse(
+                loadedModel,
+                resolve,
+                (error) => reject(error),
+                options
+            );
+
+        });
+
+        if (!(result instanceof ArrayBuffer)) {
+            throw new Error(
+                'Exporter did not return a binary GLB.'
+            );
+        }
+
+        exportedBlob = new Blob(
+            [result],
+            { type: 'model/gltf-binary' }
+        );
+
+        const sizeMB =
+            exportedBlob.size / (1024 * 1024);
+
+        status.textContent =
+            'CONVERSION SUCCESSFUL\n\n' +
+            'GLB size: ' +
+            sizeMB.toFixed(2) +
+            ' MB\n\n' +
+            'Click "Download GLB".';
+
+        downloadButton.style.display = 'inline-block';
+
+    } catch (error) {
+
+        console.error(error);
+
+        status.textContent =
+            'GLB EXPORT ERROR:\n\n' +
+            (error?.message || String(error));
+
+    } finally {
+
+        convertButton.disabled = false;
+
+    }
+});
+
+// ---------- Download ----------
+
+downloadButton.addEventListener('click', () => {
+
+    if (!exportedBlob) return;
+
+    const url = URL.createObjectURL(exportedBlob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Sofa_Clean.glb';
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+    }, 1000);
+
+});
+
+</script>
+
+</body>
+</html>
