@@ -2,16 +2,12 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>FBX Furniture Test</title>
+    <title>GLB Furniture Test</title>
 
     <style>
-
         html, body {
             margin: 0;
             width: 100%;
@@ -26,40 +22,27 @@
             top: 15px;
             left: 15px;
             z-index: 10;
-
             background: white;
             padding: 10px 15px;
-
             border-radius: 8px;
-
-            box-shadow:
-                0 2px 10px rgba(0,0,0,0.15);
-
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
             font-size: 14px;
         }
 
         #error {
             display: none;
-
             position: absolute;
             top: 70px;
             left: 15px;
             right: 15px;
-
             z-index: 20;
-
             background: #fff0f0;
             color: #900;
-
             padding: 15px;
-
             border-radius: 8px;
-
             font-family: monospace;
-
             white-space: pre-wrap;
         }
-
     </style>
 
     <script type="importmap">
@@ -79,18 +62,17 @@
 <body>
 
 <div id="info">
-    Loading FBX...
+    Loading GLB...
 </div>
 
 <div id="error"></div>
-
 
 <script type="module">
 
 import * as THREE from 'three';
 
-import { FBXLoader }
-    from 'three/addons/loaders/FBXLoader.js';
+import { GLTFLoader }
+    from 'three/addons/loaders/GLTFLoader.js';
 
 import { OrbitControls }
     from 'three/addons/controls/OrbitControls.js';
@@ -115,15 +97,9 @@ const camera =
         45,
         window.innerWidth /
         window.innerHeight,
-        0.1,
+        0.01,
         100000
     );
-
-camera.position.set(
-    3,
-    2,
-    5
-);
 
 
 // --------------------------------------------------
@@ -156,29 +132,29 @@ document.body.appendChild(
 // LIGHTING
 // --------------------------------------------------
 
-const ambient =
+const hemisphere =
     new THREE.HemisphereLight(
         0xffffff,
-        0x444444,
+        0x555555,
         3
     );
 
-scene.add(ambient);
+scene.add(hemisphere);
 
 
-const directional =
+const light =
     new THREE.DirectionalLight(
         0xffffff,
-        3
+        4
     );
 
-directional.position.set(
+light.position.set(
     5,
     10,
     5
 );
 
-scene.add(directional);
+scene.add(light);
 
 
 // --------------------------------------------------
@@ -193,50 +169,43 @@ const controls =
 
 controls.enableDamping = true;
 
-controls.target.set(
-    0,
-    0,
-    0
-);
-
 
 // --------------------------------------------------
-// LOAD FBX
+// LOAD GLB
 // --------------------------------------------------
 
 const loader =
-    new FBXLoader();
-
+    new GLTFLoader();
 
 loader.load(
 
-    './model.fbx',
+    './model.glb',
 
-    function (model) {
+    function (gltf) {
 
         console.log(
-            "FBX loaded successfully",
-            model
+            "GLB loaded successfully",
+            gltf
         );
 
+        const model =
+            gltf.scene;
 
         scene.add(model);
 
 
         // ------------------------------------------
-        // FIND MODEL SIZE
+        // MODEL BOUNDING BOX
         // ------------------------------------------
 
         const box =
             new THREE.Box3()
                 .setFromObject(model);
 
-
         const center =
             box.getCenter(
                 new THREE.Vector3()
             );
-
 
         const size =
             box.getSize(
@@ -252,7 +221,7 @@ loader.load(
 
 
         // ------------------------------------------
-        // CAMERA
+        // CAMERA POSITION
         // ------------------------------------------
 
         const maxDimension =
@@ -261,7 +230,6 @@ loader.load(
                 size.y,
                 size.z
             );
-
 
         const distance =
             maxDimension * 2.5;
@@ -273,13 +241,11 @@ loader.load(
             distance
         );
 
-
         controls.target.set(
             0,
             0,
             0
         );
-
 
         controls.update();
 
@@ -291,11 +257,11 @@ loader.load(
         document.getElementById(
             "info"
         ).innerText =
-            "FBX loaded successfully";
+            "GLB loaded successfully";
 
 
         console.log(
-            "FBX dimensions:",
+            "Model dimensions:",
             size
         );
 
@@ -314,7 +280,7 @@ loader.load(
             document.getElementById(
                 "info"
             ).innerText =
-                "Loading FBX: " +
+                "Loading GLB: " +
                 percent.toFixed(0) +
                 "%";
 
@@ -326,7 +292,7 @@ loader.load(
     function (error) {
 
         console.error(
-            "FBX LOAD ERROR:",
+            "GLB LOAD ERROR:",
             error
         );
 
@@ -336,20 +302,19 @@ loader.load(
                 "error"
             );
 
-
         errorBox.style.display =
             "block";
 
-
         errorBox.innerText =
-            "FBX LOAD ERROR\n\n" +
-            error.message;
+            "GLB LOAD ERROR\n\n" +
+            (error.message ||
+             String(error));
 
 
         document.getElementById(
             "info"
         ).innerText =
-            "FBX failed to load";
+            "GLB failed to load";
 
     }
 
@@ -369,7 +334,6 @@ window.addEventListener(
             window.innerHeight;
 
         camera.updateProjectionMatrix();
-
 
         renderer.setSize(
             window.innerWidth,
