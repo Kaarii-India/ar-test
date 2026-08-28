@@ -2,12 +2,16 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>AR Furniture Test</title>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>FBX Furniture Test</title>
 
     <style>
+
         html, body {
             margin: 0;
             width: 100%;
@@ -25,9 +29,11 @@
 
             background: white;
             padding: 10px 15px;
+
             border-radius: 8px;
 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            box-shadow:
+                0 2px 10px rgba(0,0,0,0.15);
 
             font-size: 14px;
         }
@@ -39,25 +45,31 @@
             top: 70px;
             left: 15px;
             right: 15px;
+
             z-index: 20;
 
             background: #fff0f0;
             color: #900;
 
             padding: 15px;
+
             border-radius: 8px;
 
             font-family: monospace;
+
             white-space: pre-wrap;
         }
+
     </style>
 
-    <!-- Import map for Three.js -->
     <script type="importmap">
     {
         "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+            "three":
+                "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+
+            "three/addons/":
+                "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
         }
     }
     </script>
@@ -66,302 +78,330 @@
 
 <body>
 
-    <div id="info">
-        Loading 3D model...
-    </div>
+<div id="info">
+    Loading FBX...
+</div>
 
-    <div id="error"></div>
-
-    <script type="module">
-
-        import * as THREE from 'three';
-
-        import { GLTFLoader }
-            from 'three/addons/loaders/GLTFLoader.js';
+<div id="error"></div>
 
 
-        // --------------------------------------------------
-        // SCENE
-        // --------------------------------------------------
+<script type="module">
 
-        const scene = new THREE.Scene();
+import * as THREE from 'three';
 
-        scene.background = new THREE.Color(0xeeeeee);
+import { FBXLoader }
+    from 'three/addons/loaders/FBXLoader.js';
+
+import { OrbitControls }
+    from 'three/addons/controls/OrbitControls.js';
 
 
-        // --------------------------------------------------
-        // CAMERA
-        // --------------------------------------------------
+// --------------------------------------------------
+// SCENE
+// --------------------------------------------------
 
-        const camera = new THREE.PerspectiveCamera(
-            45,
-            window.innerWidth / window.innerHeight,
-            0.1,
-            100000
+const scene = new THREE.Scene();
+
+scene.background =
+    new THREE.Color(0xeeeeee);
+
+
+// --------------------------------------------------
+// CAMERA
+// --------------------------------------------------
+
+const camera =
+    new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth /
+        window.innerHeight,
+        0.1,
+        100000
+    );
+
+camera.position.set(
+    3,
+    2,
+    5
+);
+
+
+// --------------------------------------------------
+// RENDERER
+// --------------------------------------------------
+
+const renderer =
+    new THREE.WebGLRenderer({
+        antialias: true
+    });
+
+renderer.setPixelRatio(
+    window.devicePixelRatio
+);
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+renderer.outputColorSpace =
+    THREE.SRGBColorSpace;
+
+document.body.appendChild(
+    renderer.domElement
+);
+
+
+// --------------------------------------------------
+// LIGHTING
+// --------------------------------------------------
+
+const ambient =
+    new THREE.HemisphereLight(
+        0xffffff,
+        0x444444,
+        3
+    );
+
+scene.add(ambient);
+
+
+const directional =
+    new THREE.DirectionalLight(
+        0xffffff,
+        3
+    );
+
+directional.position.set(
+    5,
+    10,
+    5
+);
+
+scene.add(directional);
+
+
+// --------------------------------------------------
+// CONTROLS
+// --------------------------------------------------
+
+const controls =
+    new OrbitControls(
+        camera,
+        renderer.domElement
+    );
+
+controls.enableDamping = true;
+
+controls.target.set(
+    0,
+    0,
+    0
+);
+
+
+// --------------------------------------------------
+// LOAD FBX
+// --------------------------------------------------
+
+const loader =
+    new FBXLoader();
+
+
+loader.load(
+
+    './model.fbx',
+
+    function (model) {
+
+        console.log(
+            "FBX loaded successfully",
+            model
         );
 
-        camera.position.set(3, 2, 5);
+
+        scene.add(model);
 
 
-        // --------------------------------------------------
-        // RENDERER
-        // --------------------------------------------------
+        // ------------------------------------------
+        // FIND MODEL SIZE
+        // ------------------------------------------
 
-        const renderer = new THREE.WebGLRenderer({
-            antialias: true
-        });
+        const box =
+            new THREE.Box3()
+                .setFromObject(model);
 
-        renderer.setPixelRatio(window.devicePixelRatio);
+
+        const center =
+            box.getCenter(
+                new THREE.Vector3()
+            );
+
+
+        const size =
+            box.getSize(
+                new THREE.Vector3()
+            );
+
+
+        // ------------------------------------------
+        // CENTER MODEL
+        // ------------------------------------------
+
+        model.position.sub(center);
+
+
+        // ------------------------------------------
+        // CAMERA
+        // ------------------------------------------
+
+        const maxDimension =
+            Math.max(
+                size.x,
+                size.y,
+                size.z
+            );
+
+
+        const distance =
+            maxDimension * 2.5;
+
+
+        camera.position.set(
+            distance,
+            distance * 0.6,
+            distance
+        );
+
+
+        controls.target.set(
+            0,
+            0,
+            0
+        );
+
+
+        controls.update();
+
+
+        // ------------------------------------------
+        // SUCCESS
+        // ------------------------------------------
+
+        document.getElementById(
+            "info"
+        ).innerText =
+            "FBX loaded successfully";
+
+
+        console.log(
+            "FBX dimensions:",
+            size
+        );
+
+    },
+
+
+    function (xhr) {
+
+        if (xhr.total) {
+
+            const percent =
+                xhr.loaded /
+                xhr.total *
+                100;
+
+            document.getElementById(
+                "info"
+            ).innerText =
+                "Loading FBX: " +
+                percent.toFixed(0) +
+                "%";
+
+        }
+
+    },
+
+
+    function (error) {
+
+        console.error(
+            "FBX LOAD ERROR:",
+            error
+        );
+
+
+        const errorBox =
+            document.getElementById(
+                "error"
+            );
+
+
+        errorBox.style.display =
+            "block";
+
+
+        errorBox.innerText =
+            "FBX LOAD ERROR\n\n" +
+            error.message;
+
+
+        document.getElementById(
+            "info"
+        ).innerText =
+            "FBX failed to load";
+
+    }
+
+);
+
+
+// --------------------------------------------------
+// RESIZE
+// --------------------------------------------------
+
+window.addEventListener(
+    "resize",
+    function () {
+
+        camera.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+        camera.updateProjectionMatrix();
+
 
         renderer.setSize(
             window.innerWidth,
             window.innerHeight
         );
 
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
+    }
+);
 
-        document.body.appendChild(renderer.domElement);
 
+// --------------------------------------------------
+// RENDER
+// --------------------------------------------------
 
-        // --------------------------------------------------
-        // LIGHTING
-        // --------------------------------------------------
+function animate() {
 
-        const ambientLight = new THREE.HemisphereLight(
-            0xffffff,
-            0x444444,
-            3
-        );
+    requestAnimationFrame(
+        animate
+    );
 
-        scene.add(ambientLight);
+    controls.update();
 
+    renderer.render(
+        scene,
+        camera
+    );
 
-        const directionalLight = new THREE.DirectionalLight(
-            0xffffff,
-            3
-        );
+}
 
-        directionalLight.position.set(5, 10, 5);
+animate();
 
-        scene.add(directionalLight);
-
-
-        // --------------------------------------------------
-        // LOAD GLB
-        // --------------------------------------------------
-
-        const loader = new GLTFLoader();
-
-        loader.load(
-
-            './model.glb',
-
-            function (gltf) {
-
-                console.log("GLB loaded successfully");
-
-                const model = gltf.scene;
-
-                scene.add(model);
-
-
-                // ------------------------------------------
-                // FIND MODEL BOUNDING BOX
-                // ------------------------------------------
-
-                const box = new THREE.Box3().setFromObject(model);
-
-                const center = box.getCenter(
-                    new THREE.Vector3()
-                );
-
-                const size = box.getSize(
-                    new THREE.Vector3()
-                );
-
-
-                // Move model so its center is at origin
-
-                model.position.sub(center);
-
-
-                // ------------------------------------------
-                // AUTO CAMERA POSITION
-                // ------------------------------------------
-
-                const maxDimension = Math.max(
-                    size.x,
-                    size.y,
-                    size.z
-                );
-
-                const distance = maxDimension * 2.5;
-
-
-                camera.position.set(
-                    distance,
-                    distance * 0.6,
-                    distance
-                );
-
-                camera.lookAt(0, 0, 0);
-
-
-                // ------------------------------------------
-                // SUCCESS MESSAGE
-                // ------------------------------------------
-
-                document.getElementById("info").innerText =
-                    "3D model loaded — drag to rotate";
-
-
-                console.log("Model dimensions:", size);
-
-            },
-
-            function (xhr) {
-
-                if (xhr.total) {
-
-                    const percent =
-                        (xhr.loaded / xhr.total) * 100;
-
-                    document.getElementById("info").innerText =
-                        "Loading model: " +
-                        percent.toFixed(0) +
-                        "%";
-
-                }
-
-            },
-
-            function (error) {
-
-                console.error(
-                    "GLB LOAD ERROR:",
-                    error
-                );
-
-                const errorBox =
-                    document.getElementById("error");
-
-                errorBox.style.display = "block";
-
-                errorBox.innerText =
-                    "GLB LOAD ERROR\n\n" +
-                    error.message;
-
-                document.getElementById("info").innerText =
-                    "Model failed to load";
-
-            }
-
-        );
-
-
-        // --------------------------------------------------
-        // SIMPLE MOUSE ROTATION
-        // --------------------------------------------------
-
-        let rotating = false;
-
-        let previousX = 0;
-
-        let rotationY = 0;
-
-
-        renderer.domElement.addEventListener(
-            "mousedown",
-            function (event) {
-
-                rotating = true;
-
-                previousX = event.clientX;
-
-            }
-        );
-
-
-        window.addEventListener(
-            "mouseup",
-            function () {
-
-                rotating = false;
-
-            }
-        );
-
-
-        window.addEventListener(
-            "mousemove",
-            function (event) {
-
-                if (!rotating) return;
-
-                const delta =
-                    event.clientX - previousX;
-
-                previousX = event.clientX;
-
-                rotationY += delta * 0.01;
-
-                scene.traverse(function (object) {
-
-                    if (object.isGroup &&
-                        object.children.length > 0) {
-
-                        object.rotation.y =
-                            rotationY;
-
-                    }
-
-                });
-
-            }
-        );
-
-
-        // --------------------------------------------------
-        // RESIZE
-        // --------------------------------------------------
-
-        window.addEventListener(
-            "resize",
-            function () {
-
-                camera.aspect =
-                    window.innerWidth /
-                    window.innerHeight;
-
-                camera.updateProjectionMatrix();
-
-                renderer.setSize(
-                    window.innerWidth,
-                    window.innerHeight
-                );
-
-            }
-        );
-
-
-        // --------------------------------------------------
-        // RENDER LOOP
-        // --------------------------------------------------
-
-        function animate() {
-
-            requestAnimationFrame(animate);
-
-            renderer.render(
-                scene,
-                camera
-            );
-
-        }
-
-        animate();
-
-    </script>
+</script>
 
 </body>
 
