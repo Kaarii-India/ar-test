@@ -3,9 +3,10 @@
 
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<title>AR Furniture Test</title>
+<title>Furniture AR</title>
 
 <style>
 
@@ -18,20 +19,38 @@ html, body {
     font-family: Arial, sans-serif;
 }
 
+#status {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 20;
+
+    background: white;
+    padding: 9px 12px;
+
+    border-radius: 8px;
+
+    font-size: 13px;
+
+    box-shadow: 0 2px 10px rgba(0,0,0,.2);
+}
+
 #products {
     position: fixed;
     right: 12px;
     top: 50%;
     transform: translateY(-50%);
+
     z-index: 20;
 
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
 }
 
 .product {
     width: 100px;
+
     padding: 16px 8px;
 
     border: none;
@@ -49,18 +68,25 @@ html, body {
     outline: 4px solid #333;
 }
 
+.product:disabled {
+    opacity: .4;
+}
+
 #instruction {
     position: fixed;
-    bottom: 25px;
+
     left: 50%;
+    bottom: 22px;
+
     transform: translateX(-50%);
 
     z-index: 20;
 
     background: white;
-    padding: 13px 20px;
 
-    border-radius: 25px;
+    padding: 12px 18px;
+
+    border-radius: 24px;
 
     font-weight: bold;
 
@@ -69,37 +95,21 @@ html, body {
     white-space: nowrap;
 }
 
-#status {
-    position: fixed;
-    top: 15px;
-    left: 15px;
-
-    z-index: 20;
-
-    background: white;
-    padding: 10px 14px;
-
-    border-radius: 8px;
-
-    font-size: 13px;
-
-    box-shadow: 0 2px 10px rgba(0,0,0,.2);
-}
-
 #error {
     display: none;
 
     position: fixed;
-    top: 70px;
-    left: 15px;
-    right: 15px;
+
+    top: 65px;
+    left: 12px;
+    right: 12px;
 
     z-index: 30;
 
     background: #fff0f0;
     color: #900;
 
-    padding: 15px;
+    padding: 14px;
 
     border-radius: 8px;
 
@@ -114,11 +124,13 @@ html, body {
 <script type="importmap">
 {
     "imports": {
+
         "three":
-            "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
 
         "three/addons/":
-            "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+        "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+
     }
 }
 </script>
@@ -136,11 +148,19 @@ html, body {
 
 <div id="products">
 
-    <button class="product" data-product="sofa">
+    <button
+        id="sofaButton"
+        class="product"
+        data-product="sofa"
+        disabled>
         SOFA
     </button>
 
-    <button class="product" data-product="table">
+    <button
+        id="tableButton"
+        class="product"
+        data-product="table"
+        disabled>
         TABLE
     </button>
 
@@ -148,7 +168,7 @@ html, body {
 
 
 <div id="instruction">
-    Tap SOFA or TABLE, then tap the screen to place.
+    Enter AR and select a product.
 </div>
 
 
@@ -156,6 +176,7 @@ html, body {
 
 
 <script type="module">
+
 
 import * as THREE from 'three';
 
@@ -196,9 +217,11 @@ const renderer =
     new THREE.WebGLRenderer({
 
         antialias: true,
+
         alpha: true
 
     });
+
 
 renderer.setPixelRatio(
     window.devicePixelRatio
@@ -221,83 +244,55 @@ document.body.appendChild(
 
 
 // =====================================================
-// LIGHTING
+// LIGHT
 // =====================================================
 
 scene.add(
+
     new THREE.HemisphereLight(
         0xffffff,
         0x555555,
         3
     )
+
 );
 
-const directional =
+const directionalLight =
     new THREE.DirectionalLight(
         0xffffff,
         4
     );
 
-directional.position.set(
+directionalLight.position.set(
     5,
     10,
     5
 );
 
 scene.add(
-    directional
+    directionalLight
 );
 
 
 // =====================================================
-// PRODUCT STORAGE
+// PRODUCTS
 // =====================================================
 
 const products = {};
 
+
+// Currently selected source model
+
 let selectedProduct = null;
 
 
-// =====================================================
-// PREPARE MODEL
-// =====================================================
+// Currently selected placed object
 
-function prepareModel(model) {
-
-    /*
-        Autodesk furniture is normally
-        exported in millimetres.
-
-        Convert mm → metres.
-    */
-
-    model.scale.set(
-        0.001,
-        0.001,
-        0.001
-    );
-
-
-    /*
-        Find bottom of model and move
-        its origin to the bottom.
-    */
-
-    const box =
-        new THREE.Box3()
-            .setFromObject(model);
-
-
-    model.position.y -=
-        box.min.y;
-
-
-    return model;
-}
+let activeObject = null;
 
 
 // =====================================================
-// LOAD PRODUCT
+// LOAD FBX
 // =====================================================
 
 function loadProduct(
@@ -317,34 +312,46 @@ function loadProduct(
         function(model) {
 
             console.log(
-                name +
-                " loaded"
+                name,
+                "loaded"
             );
 
 
-            prepareModel(
-                model
+            /*
+                IMPORTANT:
+
+                No assumed furniture dimensions.
+
+                We preserve the model's proportions
+                and coordinate system.
+
+                Initial scale is deliberately 1.
+            */
+
+            model.scale.set(
+                1,
+                1,
+                1
             );
+
+
+            model.visible =
+                false;
 
 
             products[name] =
                 model;
 
 
-            /*
-                Source model stays hidden.
-
-                We clone it every time
-                the user places a product.
-            */
-
-            model.visible =
-                false;
-
-
             scene.add(
                 model
             );
+
+
+            document.getElementById(
+                name + "Button"
+            ).disabled =
+                false;
 
 
             updateStatus();
@@ -359,8 +366,10 @@ function loadProduct(
                 document.getElementById(
                     "status"
                 ).innerText =
+
                     name.toUpperCase() +
                     " loading " +
+
                     (
                         xhr.loaded /
                         xhr.total *
@@ -376,27 +385,31 @@ function loadProduct(
         function(error) {
 
             console.error(
-                name +
-                " ERROR",
+                name,
                 error
             );
 
 
-            document.getElementById(
-                "error"
-            ).style.display =
+            const errorBox =
+                document.getElementById(
+                    "error"
+                );
+
+
+            errorBox.style.display =
                 "block";
 
 
-            document.getElementById(
-                "error"
-            ).innerText +=
+            errorBox.innerText +=
+
                 name.toUpperCase() +
                 " FAILED\n\n" +
+
                 (
                     error.message ||
                     String(error)
                 ) +
+
                 "\n\n";
 
         }
@@ -427,12 +440,10 @@ loadProduct(
 
 function updateStatus() {
 
-    const loaded =
-        Object.keys(products)
-            .length;
-
-
-    if (loaded === 2) {
+    if (
+        products.sofa &&
+        products.table
+    ) {
 
         document.getElementById(
             "status"
@@ -440,6 +451,7 @@ function updateStatus() {
             "SOFA + TABLE ready";
 
     }
+
 }
 
 
@@ -450,23 +462,21 @@ function updateStatus() {
 document
 .querySelectorAll(".product")
 .forEach(
+
     button => {
 
         button.addEventListener(
             "click",
+
             function() {
 
                 const name =
                     this.dataset.product;
 
 
-                if (!products[name]) {
-
-                    document.getElementById(
-                        "status"
-                    ).innerText =
-                        name.toUpperCase() +
-                        " is still loading.";
+                if (
+                    !products[name]
+                ) {
 
                     return;
 
@@ -480,6 +490,7 @@ document
                 document
                 .querySelectorAll(".product")
                 .forEach(
+
                     b => {
 
                         b.classList.remove(
@@ -487,6 +498,7 @@ document
                         );
 
                     }
+
                 );
 
 
@@ -498,7 +510,8 @@ document
                 document.getElementById(
                     "instruction"
                 ).innerText =
-                    "Now tap the screen to place " +
+
+                    "Tap the AR view to place " +
                     name.toUpperCase();
 
             }
@@ -506,6 +519,7 @@ document
         );
 
     }
+
 );
 
 
@@ -515,17 +529,10 @@ document
 
 const arButton =
     ARButton.createButton(
+
         renderer,
+
         {
-
-            /*
-                IMPORTANT:
-
-                NO hit-test.
-
-                We are deliberately not
-                using floor detection yet.
-            */
 
             optionalFeatures: [
                 "dom-overlay"
@@ -536,6 +543,7 @@ const arButton =
             }
 
         }
+
     );
 
 
@@ -545,7 +553,7 @@ document.body.appendChild(
 
 
 // =====================================================
-// AR CONTROLLER
+// XR CONTROLLER
 // =====================================================
 
 const controller =
@@ -559,14 +567,19 @@ scene.add(
 
 
 // =====================================================
-// PLACE PRODUCT
+// PLACE OBJECT
 // =====================================================
 
 controller.addEventListener(
+
     "select",
+
     function() {
 
-        if (!selectedProduct) {
+
+        if (
+            !selectedProduct
+        ) {
 
             document.getElementById(
                 "instruction"
@@ -579,10 +592,10 @@ controller.addEventListener(
 
 
         /*
-            Make a new copy.
+            Clone the source model.
 
-            This means previously placed
-            products remain in the room.
+            Every placement becomes
+            an independent object.
         */
 
         const object =
@@ -596,8 +609,8 @@ controller.addEventListener(
 
 
         /*
-            Put object approximately
-            1 metre in front of camera.
+            Start 1 metre in front
+            of the AR camera.
         */
 
         const direction =
@@ -609,43 +622,52 @@ controller.addEventListener(
         );
 
 
-        const position =
-            camera.position.clone();
+        direction.y = 0;
 
 
-        position.add(
+        if (
+            direction.lengthSq() < 0.000001
+        ) {
+
+            direction.set(
+                0,
+                0,
+                -1
+            );
+
+        }
+
+
+        direction.normalize();
+
+
+        const cameraPosition =
+            camera.getWorldPosition(
+                new THREE.Vector3()
+            );
+
+
+        object.position.copy(
+            cameraPosition
+        );
+
+
+        object.position.add(
             direction.multiplyScalar(
-                1.0
+                1
             )
         );
 
 
         /*
-            Put object approximately
-            at floor level.
+            Remember this object.
 
-            We assume the phone is
-            being held around 1.2m
-            above the floor.
+            It will become the object
+            that the user can manipulate.
         */
 
-        position.y -=
-            1.2;
-
-
-        object.position.copy(
-            position
-        );
-
-
-        /*
-            Make sure object rotation
-            follows the horizontal
-            direction of the camera.
-        */
-
-        object.rotation.y =
-            camera.rotation.y;
+        activeObject =
+            object;
 
 
         scene.add(
@@ -656,14 +678,393 @@ controller.addEventListener(
         document.getElementById(
             "instruction"
         ).innerText =
-            "Placed! Select another product.";
+
+            "Placed. Pinch = resize • Twist = rotate • Drag = move";
 
     }
+
 );
 
 
 // =====================================================
-// AR SESSION START
+// TOUCH / GESTURE CONTROL
+// =====================================================
+
+let touches = {};
+
+let previousDistance = null;
+
+let previousAngle = null;
+
+
+// -----------------------------------------------------
+// TOUCH START
+// -----------------------------------------------------
+
+renderer.domElement.addEventListener(
+
+    "touchstart",
+
+    function(event) {
+
+        if (
+            !activeObject
+        ) {
+            return;
+        }
+
+
+        for (
+            const touch of event.changedTouches
+        ) {
+
+            touches[touch.identifier] = {
+                x: touch.clientX,
+                y: touch.clientY
+            };
+
+        }
+
+
+        if (
+            Object.keys(touches).length === 2
+        ) {
+
+            const points =
+                Object.values(touches);
+
+
+            previousDistance =
+                distance(
+                    points[0],
+                    points[1]
+                );
+
+
+            previousAngle =
+                angle(
+                    points[0],
+                    points[1]
+                );
+
+        }
+
+    },
+
+    {
+        passive: false
+    }
+
+);
+
+
+// -----------------------------------------------------
+// TOUCH MOVE
+// -----------------------------------------------------
+
+renderer.domElement.addEventListener(
+
+    "touchmove",
+
+    function(event) {
+
+        if (
+            !activeObject
+        ) {
+            return;
+        }
+
+
+        event.preventDefault();
+
+
+        for (
+            const touch of event.changedTouches
+        ) {
+
+            if (
+                touches[touch.identifier]
+            ) {
+
+                touches[touch.identifier].x =
+                    touch.clientX;
+
+                touches[touch.identifier].y =
+                    touch.clientY;
+
+            }
+
+        }
+
+
+        const points =
+            Object.values(touches);
+
+
+        // ---------------------------------------------
+        // ONE FINGER
+        // ---------------------------------------------
+
+        if (
+            points.length === 1
+        ) {
+
+            /*
+                Move object relative to
+                finger movement.
+
+                This is deliberately a simple
+                first-stage implementation.
+            */
+
+            const point =
+                points[0];
+
+
+            const previous =
+                point.previous;
+
+
+            if (
+                previous
+            ) {
+
+                const dx =
+                    point.x -
+                    previous.x;
+
+                const dy =
+                    point.y -
+                    previous.y;
+
+
+                const movement =
+                    0.003;
+
+
+                activeObject.position.x +=
+                    dx * movement;
+
+
+                activeObject.position.z +=
+                    dy * movement;
+
+            }
+
+
+            point.previous = {
+                x: point.x,
+                y: point.y
+            };
+
+
+        }
+
+
+        // ---------------------------------------------
+        // TWO FINGERS
+        // ---------------------------------------------
+
+        if (
+            points.length === 2
+        ) {
+
+            const distanceNow =
+                distance(
+                    points[0],
+                    points[1]
+                );
+
+
+            const angleNow =
+                angle(
+                    points[0],
+                    points[1]
+                );
+
+
+            // -----------------------------------------
+            // PINCH = SCALE
+            // -----------------------------------------
+
+            if (
+                previousDistance
+            ) {
+
+                const scaleChange =
+                    distanceNow /
+                    previousDistance;
+
+
+                activeObject.scale.multiplyScalar(
+                    scaleChange
+                );
+
+
+                /*
+                    Prevent accidentally making
+                    the object disappear completely.
+                */
+
+                activeObject.scale.x =
+                    THREE.MathUtils.clamp(
+                        activeObject.scale.x,
+                        0.01,
+                        100
+                    );
+
+                activeObject.scale.y =
+                    activeObject.scale.x;
+
+                activeObject.scale.z =
+                    activeObject.scale.x;
+
+            }
+
+
+            // -----------------------------------------
+            // TWIST = ROTATION
+            // -----------------------------------------
+
+            if (
+                previousAngle !== null
+            ) {
+
+                let delta =
+                    angleNow -
+                    previousAngle;
+
+
+                /*
+                    Keep angle within
+                    -PI to PI.
+                */
+
+                if (
+                    delta > Math.PI
+                ) {
+                    delta -=
+                        Math.PI * 2;
+                }
+
+                if (
+                    delta < -Math.PI
+                ) {
+                    delta +=
+                        Math.PI * 2;
+                }
+
+
+                activeObject.rotation.y +=
+                    delta;
+
+            }
+
+
+            previousDistance =
+                distanceNow;
+
+            previousAngle =
+                angleNow;
+
+        }
+
+    },
+
+    {
+        passive: false
+    }
+
+);
+
+
+// -----------------------------------------------------
+// TOUCH END
+// -----------------------------------------------------
+
+renderer.domElement.addEventListener(
+
+    "touchend",
+
+    function(event) {
+
+        for (
+            const touch of event.changedTouches
+        ) {
+
+            delete touches[
+                touch.identifier
+            ];
+
+        }
+
+
+        if (
+            Object.keys(touches).length < 2
+        ) {
+
+            previousDistance =
+                null;
+
+            previousAngle =
+                null;
+
+        }
+
+    },
+
+    {
+        passive: false
+    }
+
+);
+
+
+// -----------------------------------------------------
+// DISTANCE
+// -----------------------------------------------------
+
+function distance(
+    a,
+    b
+) {
+
+    const dx =
+        a.x -
+        b.x;
+
+    const dy =
+        a.y -
+        b.y;
+
+
+    return Math.sqrt(
+        dx * dx +
+        dy * dy
+    );
+
+}
+
+
+// -----------------------------------------------------
+// ANGLE
+// -----------------------------------------------------
+
+function angle(
+    a,
+    b
+) {
+
+    return Math.atan2(
+        b.y - a.y,
+        b.x - a.x
+    );
+
+}
+
+
+// =====================================================
+// XR SESSION
 // =====================================================
 
 renderer.xr.addEventListener(
@@ -675,18 +1076,15 @@ renderer.xr.addEventListener(
         ).style.display =
             "none";
 
+
         document.getElementById(
             "instruction"
         ).innerText =
-            "Select SOFA or TABLE, then tap the screen.";
+            "Select SOFA or TABLE.";
 
     }
 );
 
-
-// =====================================================
-// AR SESSION END
-// =====================================================
 
 renderer.xr.addEventListener(
     "sessionend",
@@ -702,7 +1100,7 @@ renderer.xr.addEventListener(
 
 
 // =====================================================
-// RENDER LOOP
+// RENDER
 // =====================================================
 
 renderer.setAnimationLoop(
@@ -729,7 +1127,9 @@ window.addEventListener(
             window.innerWidth /
             window.innerHeight;
 
+
         camera.updateProjectionMatrix();
+
 
         renderer.setSize(
             window.innerWidth,
@@ -742,4 +1142,5 @@ window.addEventListener(
 </script>
 
 </body>
+
 </html>
