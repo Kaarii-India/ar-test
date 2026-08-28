@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-
 <meta charset="UTF-8">
 
 <meta name="viewport"
@@ -13,227 +12,110 @@
 
 <title>AR Furniture Test</title>
 
-
 <style>
 
-/* =====================================================
-   PAGE
-   ===================================================== */
-
-html,
-body {
-
+html, body {
     margin: 0;
-
     width: 100%;
     height: 100%;
-
     overflow: hidden;
-
-    background: #222;
-
+    background: transparent;
     font-family: Arial, sans-serif;
-
 }
-
-
-/* =====================================================
-   STATUS
-   ===================================================== */
 
 #status {
-
     position: fixed;
-
     top: 12px;
     left: 12px;
-
+    right: 12px;
     z-index: 100;
-
-    background: white;
-
-    padding: 9px 12px;
-
-    border-radius: 8px;
-
-    font-size: 13px;
-
-    box-shadow:
-        0 2px 10px rgba(0,0,0,.25);
-
+    background: rgba(255,255,255,.92);
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: bold;
 }
-
-
-/* =====================================================
-   PRODUCT BUTTONS
-   ===================================================== */
 
 #products {
-
     position: fixed;
-
     right: 12px;
     top: 50%;
-
-    transform:
-        translateY(-50%);
-
+    transform: translateY(-50%);
     z-index: 100;
-
     display: flex;
-
     flex-direction: column;
-
     gap: 12px;
-
 }
-
 
 .product {
-
-    width: 105px;
-
-    padding: 16px 8px;
-
+    width: 120px;
+    padding: 17px 8px;
     border: none;
-
-    border-radius: 12px;
-
+    border-radius: 14px;
     background: white;
-
+    font-size: 16px;
     font-weight: bold;
-
-    font-size: 15px;
-
-    box-shadow:
-        0 3px 12px rgba(0,0,0,.30);
-
+    box-shadow: 0 3px 12px rgba(0,0,0,.30);
 }
-
 
 .product.selected {
-
-    outline:
-        4px solid #333;
-
+    outline: 4px solid #333;
 }
-
 
 .product:disabled {
-
     opacity: .4;
-
 }
-
-
-/* =====================================================
-   INSTRUCTION
-   ===================================================== */
 
 #instruction {
-
     position: fixed;
-
     left: 50%;
-    bottom: 22px;
-
-    transform:
-        translateX(-50%);
-
+    bottom: 20px;
+    transform: translateX(-50%);
     z-index: 100;
-
     background: white;
-
-    padding: 12px 18px;
-
-    border-radius: 24px;
-
+    padding: 13px 20px;
+    border-radius: 25px;
     font-weight: bold;
-
-    box-shadow:
-        0 3px 12px rgba(0,0,0,.25);
-
+    box-shadow: 0 3px 12px rgba(0,0,0,.25);
     white-space: nowrap;
-
 }
 
-
-/* =====================================================
-   ERROR
-   ===================================================== */
-
 #error {
-
     display: none;
-
     position: fixed;
-
-    top: 65px;
-
+    top: 70px;
     left: 12px;
     right: 12px;
-
     z-index: 200;
-
     background: #fff0f0;
-
     color: #900;
-
-    padding: 14px;
-
+    padding: 12px;
     border-radius: 8px;
-
     font-family: monospace;
-
     white-space: pre-wrap;
-
 }
 
 </style>
 
-
-<!-- =====================================================
-     THREE.JS IMPORT MAP
-     ===================================================== -->
-
 <script type="importmap">
-
 {
-
     "imports": {
-
         "three":
         "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
 
         "three/addons/":
         "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-
     }
-
 }
-
 </script>
 
 </head>
 
-
 <body>
 
-
-<!-- =====================================================
-     STATUS
-     ===================================================== -->
-
 <div id="status">
-
-    Loading products...
-
+    Loading...
 </div>
-
-
-<!-- =====================================================
-     PRODUCT LIST
-     ===================================================== -->
 
 <div id="products">
 
@@ -242,106 +124,56 @@ body {
         class="product"
         data-product="sofa"
         disabled>
-
         SOFA
-
     </button>
-
 
     <button
         id="tableButton"
         class="product"
         data-product="table"
         disabled>
-
         TABLE
-
     </button>
 
 </div>
 
-
-<!-- =====================================================
-     INSTRUCTION
-     ===================================================== -->
-
 <div id="instruction">
-
-    Select SOFA or TABLE.
-
+    Select a product.
 </div>
-
-
-<!-- =====================================================
-     ERROR
-     ===================================================== -->
 
 <div id="error"></div>
 
 
 <script type="module">
 
-
-/* =====================================================
-   IMPORTS
-   ===================================================== */
-
-import * as THREE
-from
-'three';
-
+import * as THREE from 'three';
 
 import { FBXLoader }
-from
-'three/addons/loaders/FBXLoader.js';
-
+from 'three/addons/loaders/FBXLoader.js';
 
 import { ARButton }
-from
-'three/addons/webxr/ARButton.js';
-
-
-
-/* =====================================================
-   SCENE
-   ===================================================== */
-
-const scene =
-    new THREE.Scene();
-
+from 'three/addons/webxr/ARButton.js';
 
 
 /* =====================================================
-   CAMERA
+   BASIC THREE.JS SETUP
    ===================================================== */
+
+const scene = new THREE.Scene();
 
 const camera =
     new THREE.PerspectiveCamera(
-
-        60,
-
-        window.innerWidth /
-        window.innerHeight,
-
+        70,
+        window.innerWidth / window.innerHeight,
         0.01,
-
         1000
-
     );
 
 
-
-/* =====================================================
-   RENDERER
-   ===================================================== */
-
 const renderer =
     new THREE.WebGLRenderer({
-
         antialias: true,
-
         alpha: true
-
     });
 
 
@@ -349,71 +181,33 @@ renderer.setPixelRatio(
     window.devicePixelRatio
 );
 
-
 renderer.setSize(
     window.innerWidth,
     window.innerHeight
 );
 
-
 renderer.outputColorSpace =
     THREE.SRGBColorSpace;
 
-
-renderer.xr.enabled =
-    true;
-
+renderer.xr.enabled = true;
 
 document.body.appendChild(
     renderer.domElement
 );
 
 
-
 /* =====================================================
-   LIGHTING
+   LIGHT
    ===================================================== */
 
-const hemisphere =
+const light =
     new THREE.HemisphereLight(
-
         0xffffff,
-
-        0x555555,
-
+        0x444444,
         3
-
     );
 
-
-scene.add(
-    hemisphere
-);
-
-
-const directional =
-    new THREE.DirectionalLight(
-
-        0xffffff,
-
-        4
-
-    );
-
-
-directional.position.set(
-
-    5,
-    10,
-    5
-
-);
-
-
-scene.add(
-    directional
-);
-
+scene.add(light);
 
 
 /* =====================================================
@@ -422,211 +216,94 @@ scene.add(
 
 const products = {};
 
+let selectedProduct = null;
 
-/*
-    This is the source product selected
-    from the right-hand buttons.
-*/
-
-let selectedProductName =
-    null;
-
-
-/*
-    This is the actual object currently
-    selected/manipulated in the AR scene.
-*/
-
-let activeObject =
-    null;
-
+let placedObjects = [];
 
 
 /* =====================================================
-   FBX LOADING
+   LOAD FBX
    ===================================================== */
 
-function loadProduct(
+function loadFBX(name, filename) {
 
-    name,
-
-    filename
-
-) {
-
-
-    const loader =
-        new FBXLoader();
-
+    const loader = new FBXLoader();
 
     loader.load(
 
         filename,
 
-
         function(model) {
 
-
-            console.log(
-                name +
-                " loaded"
-            );
-
-
             /*
-                IMPORTANT
-
-                Your Autodesk FBX files are
-                centimetre based.
-
-                Therefore:
-
-                    1 FBX unit
-                    =
-                    1 centimetre
-
-                AR uses metres.
-
-                Therefore:
-
-                    1 FBX unit
-                    =
-                    0.01 metre
-
-                This is ONLY a unit conversion.
-
-                It is NOT saying the sofa is
-                any particular real-world size.
-            */
+             * FBX from your Autodesk workflow is
+             * being treated as centimetres.
+             *
+             * This converts centimetres to metres.
+             */
 
             model.scale.set(
-
                 0.01,
                 0.01,
                 0.01
-
             );
 
+            model.visible = false;
 
-            /*
-                Keep the original model hidden.
+            products[name] = model;
 
-                We clone it when the user places it.
-            */
-
-            model.visible =
-                false;
-
-
-            products[name] =
-                model;
-
-
-            scene.add(
-                model
-            );
-
+            scene.add(model);
 
             document.getElementById(
                 name + "Button"
-            ).disabled =
-                false;
-
+            ).disabled = false;
 
             updateStatus();
 
         },
 
-
         function(xhr) {
 
+            if (xhr.total) {
 
-            if (
-                xhr.total
-            ) {
-
-                const percent =
-
-                    (
-                        xhr.loaded /
-                        xhr.total
-                    ) * 100;
-
+                const p =
+                    (xhr.loaded / xhr.total) * 100;
 
                 document.getElementById(
                     "status"
                 ).innerText =
-
                     name.toUpperCase() +
                     " loading " +
-                    percent.toFixed(0) +
+                    p.toFixed(0) +
                     "%";
 
             }
 
         },
 
-
         function(error) {
 
-
-            console.error(
-                name,
-                error
-            );
-
-
-            const errorBox =
-                document.getElementById(
-                    "error"
-                );
-
-
-            errorBox.style.display =
-                "block";
-
-
-            errorBox.innerText +=
-
+            showError(
                 name.toUpperCase() +
-                " FAILED\n\n" +
-
-                (
-                    error.message ||
-                    String(error)
-                ) +
-
-                "\n\n";
+                " FBX FAILED\n\n" +
+                String(error)
+            );
 
         }
 
     );
-
 }
 
 
-
-/* =====================================================
-   LOAD PRODUCTS
-   ===================================================== */
-
-loadProduct(
-
+loadFBX(
     "sofa",
-
-    "./sofa.fbx"
-
+    "./sofa.fbx?v=2"
 );
 
-
-loadProduct(
-
+loadFBX(
     "table",
-
-    "./table.fbx"
-
+    "./table.fbx?v=2"
 );
-
 
 
 /* =====================================================
@@ -635,95 +312,127 @@ loadProduct(
 
 function updateStatus() {
 
-
     if (
-
         products.sofa &&
         products.table
-
     ) {
 
         document.getElementById(
             "status"
         ).innerText =
-            "SOFA + TABLE ready";
+            "Both FBX files loaded.";
+
+        document.getElementById(
+            "instruction"
+        ).innerText =
+            "Tap SOFA or TABLE.";
 
     }
 
 }
 
 
+/* =====================================================
+   ERROR DISPLAY
+   ===================================================== */
+
+function showError(message) {
+
+    const box =
+        document.getElementById(
+            "error"
+        );
+
+    box.style.display = "block";
+
+    box.innerText = message;
+
+}
+
 
 /* =====================================================
-   PRODUCT SELECTION
+   PRODUCT BUTTONS
    ===================================================== */
 
 document
 .querySelectorAll(".product")
-.forEach(
+.forEach(button => {
 
-    button => {
+    button.addEventListener(
+        "click",
+        function() {
 
+            const name =
+                this.dataset.product;
 
-        button.addEventListener(
-
-            "click",
-
-            function() {
-
-
-                const name =
-                    this.dataset.product;
-
-
-                if (
-                    !products[name]
-                ) {
-
-                    return;
-
-                }
-
-
-                selectedProductName =
-                    name;
-
-
-                document
-                .querySelectorAll(".product")
-                .forEach(
-
-                    b => {
-
-                        b.classList.remove(
-                            "selected"
-                        );
-
-                    }
-
-                );
-
-
-                this.classList.add(
-                    "selected"
-                );
-
-
-                document.getElementById(
-                    "instruction"
-                ).innerText =
-
-                    "Point at the floor and tap to place " +
-                    name.toUpperCase();
-
+            if (!products[name]) {
+                return;
             }
 
-        );
+            selectedProduct = name;
 
-    }
+            document
+            .querySelectorAll(".product")
+            .forEach(b => {
+                b.classList.remove(
+                    "selected"
+                );
+            });
 
-);
+            this.classList.add(
+                "selected"
+            );
 
+            document.getElementById(
+                "instruction"
+            ).innerText =
+                "Move phone slowly over floor.";
+
+            document.getElementById(
+                "status"
+            ).innerText =
+                "Searching for a surface...";
+
+        }
+    );
+
+});
+
+
+/* =====================================================
+   RETICLE
+   ===================================================== */
+
+const reticleGeometry =
+    new THREE.RingGeometry(
+        0.08,
+        0.105,
+        32
+    );
+
+const reticleMaterial =
+    new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        side: THREE.DoubleSide
+    });
+
+const reticle =
+    new THREE.Mesh(
+        reticleGeometry,
+        reticleMaterial
+    );
+
+
+reticle.rotation.x =
+    -Math.PI / 2;
+
+reticle.matrixAutoUpdate =
+    false;
+
+reticle.visible =
+    false;
+
+scene.add(reticle);
 
 
 /* =====================================================
@@ -731,34 +440,22 @@ document
    ===================================================== */
 
 const arButton =
-
     ARButton.createButton(
 
         renderer,
 
         {
-
             requiredFeatures: [
-
                 "hit-test"
-
             ],
-
 
             optionalFeatures: [
-
                 "dom-overlay"
-
             ],
 
-
             domOverlay: {
-
-                root:
-                    document.body
-
+                root: document.body
             }
-
         }
 
     );
@@ -769,818 +466,225 @@ document.body.appendChild(
 );
 
 
-
 /* =====================================================
-   AR SESSION VARIABLES
+   AR SESSION
    ===================================================== */
 
-let hitTestSource =
-    null;
+let hitTestSource = null;
 
+let viewerReferenceSpace = null;
 
-let hitTestSourceRequested =
-    false;
-
-
-let viewerSpace =
-    null;
-
-
-let localSpace =
-    null;
-
+let localReferenceSpace = null;
 
 
 /* =====================================================
-   RETICLE
-   ===================================================== */
-
-/*
-    This ring shows where the next object
-    will be placed.
-
-    It is NOT part of the furniture.
-*/
-
-const reticle =
-    new THREE.Mesh(
-
-        new THREE.RingGeometry(
-
-            0.08,
-            0.10,
-            32
-
-        ),
-
-        new THREE.MeshBasicMaterial({
-
-            color: 0xffffff,
-
-            side:
-                THREE.DoubleSide
-
-        })
-
-    );
-
-
-reticle.rotation.x =
-    -Math.PI / 2;
-
-
-reticle.matrixAutoUpdate =
-    false;
-
-
-reticle.visible =
-    false;
-
-
-scene.add(
-    reticle
-);
-
-
-
-/* =====================================================
-   AR SESSION START
+   SESSION START
    ===================================================== */
 
 renderer.xr.addEventListener(
-
     "sessionstart",
-
     async function() {
 
+        try {
 
-        const session =
-            renderer.xr.getSession();
+            const session =
+                renderer.xr.getSession();
 
 
-        /*
-            Viewer reference space is used
-            for hit testing.
-        */
+            document.getElementById(
+                "status"
+            ).innerText =
+                "AR started. Initialising surface detection...";
 
-        viewerSpace =
-            await session.requestReferenceSpace(
-                "viewer"
+
+            /*
+             * Viewer space:
+             * follows the phone/camera.
+             */
+
+            viewerReferenceSpace =
+                await session
+                .requestReferenceSpace(
+                    "viewer"
+                );
+
+
+            /*
+             * Local space:
+             * becomes the stable AR world.
+             */
+
+            localReferenceSpace =
+                await session
+                .requestReferenceSpace(
+                    "local"
+                );
+
+
+            /*
+             * IMPORTANT:
+             *
+             * Hit testing originates from
+             * the camera/viewer and finds
+             * real surfaces in front of it.
+             */
+
+            hitTestSource =
+                await session
+                .requestHitTestSource({
+
+                    space:
+                        viewerReferenceSpace
+
+                });
+
+
+            document.getElementById(
+                "status"
+            ).innerText =
+                "Surface detection active.";
+
+            document.getElementById(
+                "instruction"
+            ).innerText =
+                "Move phone slowly over the floor.";
+
+        }
+
+        catch(error) {
+
+            showError(
+                "AR INITIALISATION FAILED\n\n" +
+                error.message
             );
 
-
-        /*
-            Local reference space is used
-            for the actual AR world.
-        */
-
-        localSpace =
-            await session.requestReferenceSpace(
-                "local"
-            );
-
-
-        /*
-            Request a hit-test source.
-
-            This is the important difference
-            from the earlier versions.
-        */
-
-        hitTestSource =
-            await session.requestHitTestSource({
-
-                space:
-                    viewerSpace
-
-            });
-
-
-        hitTestSourceRequested =
-            true;
-
-
-        document.getElementById(
-            "status"
-        ).style.display =
-            "none";
-
-
-        document.getElementById(
-            "instruction"
-        ).innerText =
-
-            "Select SOFA or TABLE.";
-
+        }
 
     }
-
 );
 
 
-
 /* =====================================================
-   AR SESSION END
+   SESSION END
    ===================================================== */
 
 renderer.xr.addEventListener(
-
     "sessionend",
-
     function() {
 
+        hitTestSource = null;
 
-        hitTestSource =
-            null;
+        viewerReferenceSpace = null;
 
+        localReferenceSpace = null;
 
-        hitTestSourceRequested =
-            false;
-
-
-        viewerSpace =
-            null;
-
-
-        localSpace =
-            null;
-
-
-        reticle.visible =
-            false;
-
+        reticle.visible = false;
 
         document.getElementById(
             "status"
-        ).style.display =
-            "block";
+        ).innerText =
+            "AR session ended.";
 
     }
-
 );
 
 
-
 /* =====================================================
-   XR CONTROLLER
+   CONTROLLER
    ===================================================== */
 
 const controller =
-    renderer.xr.getController(
-        0
-    );
+    renderer.xr.getController(0);
 
-
-scene.add(
-    controller
-);
-
+scene.add(controller);
 
 
 /* =====================================================
-   PLACE / REPOSITION
+   TAP = PLACE
    ===================================================== */
 
 controller.addEventListener(
-
     "select",
-
     function() {
 
-
-        /*
-            Nothing selected?
-        */
-
-        if (
-            !selectedProductName
-        ) {
+        if (!selectedProduct) {
 
             document.getElementById(
                 "instruction"
             ).innerText =
-
                 "Select SOFA or TABLE first.";
 
             return;
-
         }
 
 
-        /*
-            No valid floor position yet.
-        */
-
-        if (
-            !reticle.visible
-        ) {
+        if (!reticle.visible) {
 
             document.getElementById(
                 "instruction"
             ).innerText =
-
-                "Move the phone until a surface is detected.";
+                "No surface detected yet.";
 
             return;
-
         }
 
 
         /*
-            If an object is already selected,
-            move THAT object to the new
-            detected surface position.
+         * Clone the selected FBX.
+         */
 
-            Otherwise create a new object.
-        */
-
-        if (
-            activeObject &&
-            activeObject.userData.productName ===
-            selectedProductName
-        ) {
+        const object =
+            products[selectedProduct]
+            .clone(true);
 
 
-            /*
-                Reposition existing object.
-            */
-
-            activeObject.position.setFromMatrixPosition(
-                reticle.matrix
-            );
+        object.visible = true;
 
 
-            /*
-                Keep its existing scale
-                and rotation.
-            */
+        /*
+         * Copy the exact detected
+         * AR-world position.
+         */
 
-        }
-
-        else {
-
-
-            /*
-                Create a completely independent
-                copy of the selected product.
-            */
-
-            const object =
-                products[
-                    selectedProductName
-                ].clone(
-                    true
-                );
+        object.position.setFromMatrixPosition(
+            reticle.matrix
+        );
 
 
-            object.visible =
-                true;
+        /*
+         * Start at the FBX's converted
+         * scale.
+         */
+
+        object.scale.set(
+            1,
+            1,
+            1
+        );
 
 
-            /*
-                Copy the exact AR world
-                position from the reticle.
-            */
+        /*
+         * Keep the object in the scene.
+         */
 
-            object.position.setFromMatrixPosition(
-                reticle.matrix
-            );
+        scene.add(object);
 
-
-            /*
-                Start with the model's
-                FBX-derived scale.
-
-                User can change this with
-                pinch.
-            */
-
-            object.scale.set(
-
-                1,
-                1,
-                1
-
-            );
+        placedObjects.push(object);
 
 
-            /*
-                Store product name.
-            */
-
-            object.userData.productName =
-                selectedProductName;
-
-
-            /*
-                Make this the active object.
-            */
-
-            activeObject =
-                object;
-
-
-            scene.add(
-                object
-            );
-
-        }
-
+        document.getElementById(
+            "status"
+        ).innerText =
+            selectedProduct.toUpperCase() +
+            " PLACED.";
 
         document.getElementById(
             "instruction"
         ).innerText =
-
-            "Placed. Pinch = size • Twist = rotate";
+            "Move phone around. Object should stay.";
 
     }
-
 );
-
-
-
-/* =====================================================
-   TOUCH GESTURES
-   ===================================================== */
-
-let touchPoints =
-    new Map();
-
-
-let previousPinchDistance =
-    null;
-
-
-let previousRotation =
-    null;
-
-
-
-/* =====================================================
-   TOUCH START
-   ===================================================== */
-
-renderer.domElement.addEventListener(
-
-    "touchstart",
-
-    function(event) {
-
-
-        if (
-            !activeObject
-        ) {
-
-            return;
-
-        }
-
-
-        for (
-            const touch
-            of event.changedTouches
-        ) {
-
-
-            touchPoints.set(
-
-                touch.identifier,
-
-                {
-
-                    x:
-                        touch.clientX,
-
-                    y:
-                        touch.clientY
-
-                }
-
-            );
-
-        }
-
-
-        if (
-            touchPoints.size === 2
-        ) {
-
-
-            const points =
-                [...touchPoints.values()];
-
-
-            previousPinchDistance =
-                getDistance(
-
-                    points[0],
-                    points[1]
-
-                );
-
-
-            previousRotation =
-                getAngle(
-
-                    points[0],
-                    points[1]
-
-                );
-
-        }
-
-    },
-
-
-    {
-        passive: false
-    }
-
-);
-
-
-
-/* =====================================================
-   TOUCH MOVE
-   ===================================================== */
-
-renderer.domElement.addEventListener(
-
-    "touchmove",
-
-    function(event) {
-
-
-        if (
-            !activeObject
-        ) {
-
-            return;
-
-        }
-
-
-        event.preventDefault();
-
-
-        /*
-            Update finger positions.
-        */
-
-        for (
-            const touch
-            of event.changedTouches
-        ) {
-
-
-            const point =
-                touchPoints.get(
-                    touch.identifier
-                );
-
-
-            if (
-                point
-            ) {
-
-                point.x =
-                    touch.clientX;
-
-                point.y =
-                    touch.clientY;
-
-            }
-
-        }
-
-
-        /*
-            We only manipulate with TWO
-            fingers here.
-
-            This prevents accidental
-            camera movements from moving
-            the furniture.
-        */
-
-        if (
-            touchPoints.size !== 2
-        ) {
-
-            return;
-
-        }
-
-
-        const points =
-            [...touchPoints.values()];
-
-
-        const currentDistance =
-            getDistance(
-
-                points[0],
-                points[1]
-
-            );
-
-
-        const currentAngle =
-            getAngle(
-
-                points[0],
-                points[1]
-
-            );
-
-
-
-        /* =================================================
-           PINCH = SCALE
-           ================================================= */
-
-        if (
-            previousPinchDistance !== null
-        ) {
-
-
-            const factor =
-
-                currentDistance /
-                previousPinchDistance;
-
-
-            activeObject.scale.multiplyScalar(
-                factor
-            );
-
-
-            /*
-                Prevent accidental
-                disappearance.
-            */
-
-            const minimum =
-                0.05;
-
-
-            const maximum =
-                20;
-
-
-            const currentScale =
-                activeObject.scale.x;
-
-
-            const safeScale =
-                THREE.MathUtils.clamp(
-
-                    currentScale,
-
-                    minimum,
-
-                    maximum
-
-                );
-
-
-            activeObject.scale.set(
-
-                safeScale,
-                safeScale,
-                safeScale
-
-            );
-
-        }
-
-
-
-        /* =================================================
-           TWO FINGER TWIST = ROTATE
-           ================================================= */
-
-        if (
-            previousRotation !== null
-        ) {
-
-
-            let delta =
-
-                currentAngle -
-                previousRotation;
-
-
-            /*
-                Prevent the angle from
-                jumping at ±PI.
-            */
-
-            if (
-                delta > Math.PI
-            ) {
-
-                delta -=
-                    Math.PI * 2;
-
-            }
-
-
-            if (
-                delta < -Math.PI
-            ) {
-
-                delta +=
-                    Math.PI * 2;
-
-            }
-
-
-            activeObject.rotation.y +=
-                delta;
-
-        }
-
-
-        previousPinchDistance =
-            currentDistance;
-
-
-        previousRotation =
-            currentAngle;
-
-    },
-
-
-    {
-        passive: false
-    }
-
-);
-
-
-
-/* =====================================================
-   TOUCH END
-   ===================================================== */
-
-renderer.domElement.addEventListener(
-
-    "touchend",
-
-    function(event) {
-
-
-        for (
-            const touch
-            of event.changedTouches
-        ) {
-
-            touchPoints.delete(
-                touch.identifier
-            );
-
-        }
-
-
-        if (
-            touchPoints.size < 2
-        ) {
-
-            previousPinchDistance =
-                null;
-
-            previousRotation =
-                null;
-
-        }
-
-    }
-
-);
-
-
-
-/* =====================================================
-   TOUCH CANCEL
-   ===================================================== */
-
-renderer.domElement.addEventListener(
-
-    "touchcancel",
-
-    function() {
-
-
-        touchPoints.clear();
-
-
-        previousPinchDistance =
-            null;
-
-
-        previousRotation =
-            null;
-
-    }
-
-);
-
-
-
-/* =====================================================
-   DISTANCE BETWEEN TWO FINGERS
-   ===================================================== */
-
-function getDistance(
-
-    a,
-    b
-
-) {
-
-
-    const dx =
-        a.x - b.x;
-
-
-    const dy =
-        a.y - b.y;
-
-
-    return Math.sqrt(
-
-        dx * dx +
-        dy * dy
-
-    );
-
-}
-
-
-
-/* =====================================================
-   ANGLE BETWEEN TWO FINGERS
-   ===================================================== */
-
-function getAngle(
-
-    a,
-    b
-
-) {
-
-
-    return Math.atan2(
-
-        b.y - a.y,
-
-        b.x - a.x
-
-    );
-
-}
-
 
 
 /* =====================================================
@@ -1588,62 +692,44 @@ function getAngle(
    ===================================================== */
 
 renderer.setAnimationLoop(
-
-    function(
-
-        timestamp,
-        frame
-
-    ) {
-
+    function(timestamp, frame) {
 
         /*
-            Update floor detection.
-        */
+         * No AR frame = normal render.
+         */
 
         if (
-
             frame &&
             hitTestSource &&
-            localSpace
-
+            localReferenceSpace
         ) {
 
-
-            const hitTestResults =
+            const results =
                 frame.getHitTestResults(
                     hitTestSource
                 );
 
 
-            if (
-                hitTestResults.length > 0
-            ) {
-
+            if (results.length > 0) {
 
                 const hit =
-                    hitTestResults[0];
+                    results[0];
 
 
                 const pose =
                     hit.getPose(
-                        localSpace
+                        localReferenceSpace
                     );
 
 
-                if (
-                    pose
-                ) {
-
+                if (pose) {
 
                     /*
-                        Update reticle
-                        to the detected
-                        real-world surface.
-                    */
+                     * A REAL SURFACE HAS BEEN
+                     * DETECTED.
+                     */
 
-                    reticle.visible =
-                        true;
+                    reticle.visible = true;
 
 
                     reticle.matrix.fromArray(
@@ -1651,15 +737,41 @@ renderer.setAnimationLoop(
                     );
 
 
+                    document.getElementById(
+                        "status"
+                    ).innerText =
+                        "SURFACE DETECTED — TAP TO PLACE";
+
+
+                    if (selectedProduct) {
+
+                        document.getElementById(
+                            "instruction"
+                        ).innerText =
+                            "Tap the floor to place " +
+                            selectedProduct.toUpperCase();
+
+                    }
+
                 }
 
             }
-
             else {
 
+                /*
+                 * Nothing detected.
+                 */
 
-                reticle.visible =
-                    false;
+                reticle.visible = false;
+
+                if (selectedProduct) {
+
+                    document.getElementById(
+                        "status"
+                    ).innerText =
+                        "Searching for surface...";
+
+                }
 
             }
 
@@ -1667,52 +779,37 @@ renderer.setAnimationLoop(
 
 
         renderer.render(
-
             scene,
             camera
-
         );
 
     }
-
 );
-
 
 
 /* =====================================================
-   WINDOW RESIZE
+   RESIZE
    ===================================================== */
 
 window.addEventListener(
-
     "resize",
-
     function() {
 
-
         camera.aspect =
-
             window.innerWidth /
             window.innerHeight;
 
-
         camera.updateProjectionMatrix();
 
-
         renderer.setSize(
-
             window.innerWidth,
             window.innerHeight
-
         );
 
     }
-
 );
-
 
 </script>
 
 </body>
-
 </html>
