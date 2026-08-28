@@ -2,114 +2,172 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>GLB Furniture Test</title>
+<meta charset="UTF-8">
 
-    <style>
-        html, body {
-            margin: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #eeeeee;
-            font-family: Arial, sans-serif;
-        }
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-        #info {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            z-index: 10;
-            background: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-            font-size: 14px;
-        }
+<title>Furniture AR Test</title>
 
-        #error {
-            display: none;
-            position: absolute;
-            top: 70px;
-            left: 15px;
-            right: 15px;
-            z-index: 20;
-            background: #fff0f0;
-            color: #900;
-            padding: 15px;
-            border-radius: 8px;
-            font-family: monospace;
-            white-space: pre-wrap;
-        }
-    </style>
+<style>
 
-    <script type="importmap">
-    {
-        "imports": {
-            "three":
-                "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #eeeeee;
+    font-family: Arial, sans-serif;
+}
 
-            "three/addons/":
-                "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-        }
+#info {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 20;
+
+    background: white;
+    padding: 10px 15px;
+
+    border-radius: 8px;
+
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+
+    font-size: 14px;
+}
+
+#ar-instruction {
+    display: none;
+
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    z-index: 20;
+
+    background: white;
+    padding: 14px 20px;
+
+    border-radius: 25px;
+
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+
+    font-weight: bold;
+}
+
+#error {
+    display: none;
+
+    position: fixed;
+    top: 70px;
+    left: 15px;
+    right: 15px;
+
+    z-index: 30;
+
+    background: #fff0f0;
+    color: #900;
+
+    padding: 15px;
+
+    border-radius: 8px;
+
+    font-family: monospace;
+
+    white-space: pre-wrap;
+}
+
+</style>
+
+
+<script type="importmap">
+
+{
+    "imports": {
+
+        "three":
+        "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+
+        "three/addons/":
+        "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+
     }
-    </script>
+}
+
+</script>
 
 </head>
 
+
 <body>
 
+
 <div id="info">
-    Loading GLB...
+    Loading furniture...
 </div>
+
+
+<div id="ar-instruction">
+    Move your phone to find the floor, then tap to place.
+</div>
+
 
 <div id="error"></div>
 
+
 <script type="module">
+
 
 import * as THREE from 'three';
 
-import { GLTFLoader }
-    from 'three/addons/loaders/GLTFLoader.js';
+import { FBXLoader }
+from 'three/addons/loaders/FBXLoader.js';
 
 import { OrbitControls }
-    from 'three/addons/controls/OrbitControls.js';
+from 'three/addons/controls/OrbitControls.js';
+
+import { ARButton }
+from 'three/addons/webxr/ARButton.js';
 
 
-// --------------------------------------------------
+// ==================================================
 // SCENE
-// --------------------------------------------------
+// ==================================================
 
-const scene = new THREE.Scene();
-
-scene.background =
-    new THREE.Color(0xeeeeee);
+const scene =
+    new THREE.Scene();
 
 
-// --------------------------------------------------
+// ==================================================
 // CAMERA
-// --------------------------------------------------
+// ==================================================
 
 const camera =
     new THREE.PerspectiveCamera(
-        45,
+        60,
         window.innerWidth /
         window.innerHeight,
         0.01,
-        100000
+        10000
     );
 
 
-// --------------------------------------------------
+// ==================================================
 // RENDERER
-// --------------------------------------------------
+// ==================================================
 
 const renderer =
     new THREE.WebGLRenderer({
-        antialias: true
+
+        antialias: true,
+
+        alpha: true
+
     });
+
 
 renderer.setPixelRatio(
     window.devicePixelRatio
@@ -123,14 +181,20 @@ renderer.setSize(
 renderer.outputColorSpace =
     THREE.SRGBColorSpace;
 
+
+// IMPORTANT FOR AR
+
+renderer.xr.enabled = true;
+
+
 document.body.appendChild(
     renderer.domElement
 );
 
 
-// --------------------------------------------------
+// ==================================================
 // LIGHTING
-// --------------------------------------------------
+// ==================================================
 
 const hemisphere =
     new THREE.HemisphereLight(
@@ -139,27 +203,31 @@ const hemisphere =
         3
     );
 
-scene.add(hemisphere);
+scene.add(
+    hemisphere
+);
 
 
-const light =
+const directional =
     new THREE.DirectionalLight(
         0xffffff,
         4
     );
 
-light.position.set(
+directional.position.set(
     5,
     10,
     5
 );
 
-scene.add(light);
+scene.add(
+    directional
+);
 
 
-// --------------------------------------------------
-// CONTROLS
-// --------------------------------------------------
+// ==================================================
+// DESKTOP CONTROLS
+// ==================================================
 
 const controls =
     new OrbitControls(
@@ -167,45 +235,52 @@ const controls =
         renderer.domElement
     );
 
-controls.enableDamping = true;
+controls.enableDamping =
+    true;
 
 
-// --------------------------------------------------
-// LOAD GLB
-// --------------------------------------------------
+// ==================================================
+// MODEL
+// ==================================================
+
+let furniture = null;
+
+
+// ==================================================
+// LOAD FBX
+// ==================================================
 
 const loader =
-    new GLTFLoader();
+    new FBXLoader();
+
 
 loader.load(
 
-    './model.glb',
+    './model.fbx',
 
-    function (gltf) {
+
+    function(model) {
 
         console.log(
-            "GLB loaded successfully",
-            gltf
+            "FBX loaded",
+            model
         );
 
-        const model =
-            gltf.scene;
 
-        scene.add(model);
+        furniture =
+            model;
 
 
         // ------------------------------------------
-        // MODEL BOUNDING BOX
+        // GET ORIGINAL SIZE
         // ------------------------------------------
 
         const box =
             new THREE.Box3()
-                .setFromObject(model);
+                .setFromObject(
+                    furniture
+                );
 
-        const center =
-            box.getCenter(
-                new THREE.Vector3()
-            );
 
         const size =
             box.getSize(
@@ -213,75 +288,134 @@ loader.load(
             );
 
 
+        const center =
+            box.getCenter(
+                new THREE.Vector3()
+            );
+
+
+        console.log(
+            "Original dimensions:",
+            size
+        );
+
+
         // ------------------------------------------
-        // CENTER MODEL
+        // IMPORTANT
+        //
+        // Autodesk furniture models are commonly
+        // exported in millimetres.
+        //
+        // Convert mm → metres for AR.
         // ------------------------------------------
 
-        model.position.sub(center);
+        furniture.scale.set(
+            0.001,
+            0.001,
+            0.001
+        );
 
 
         // ------------------------------------------
-        // CAMERA POSITION
+        // Recalculate bounds after scaling
         // ------------------------------------------
+
+        const scaledBox =
+            new THREE.Box3()
+                .setFromObject(
+                    furniture
+                );
+
+
+        const scaledCenter =
+            scaledBox.getCenter(
+                new THREE.Vector3()
+            );
+
+
+        // Center X/Z
+
+        furniture.position.x -=
+            scaledCenter.x;
+
+        furniture.position.z -=
+            scaledCenter.z;
+
+
+        // Put bottom on Y = 0
+
+        furniture.position.y -=
+            scaledBox.min.y;
+
+
+        scene.add(
+            furniture
+        );
+
+
+        // ------------------------------------------
+        // DESKTOP CAMERA
+        // ------------------------------------------
+
+        const scaledSize =
+            scaledBox.getSize(
+                new THREE.Vector3()
+            );
+
 
         const maxDimension =
             Math.max(
-                size.x,
-                size.y,
-                size.z
+                scaledSize.x,
+                scaledSize.y,
+                scaledSize.z
             );
-
-        const distance =
-            maxDimension * 2.5;
 
 
         camera.position.set(
-            distance,
-            distance * 0.6,
-            distance
+            maxDimension * 2.2,
+            maxDimension * 1.2,
+            maxDimension * 2.2
         );
+
 
         controls.target.set(
             0,
-            0,
+            scaledSize.y / 2,
             0
         );
+
 
         controls.update();
 
 
-        // ------------------------------------------
-        // SUCCESS
-        // ------------------------------------------
-
         document.getElementById(
             "info"
         ).innerText =
-            "GLB loaded successfully";
+            "FBX loaded — AR button available";
 
 
         console.log(
-            "Model dimensions:",
-            size
+            "AR dimensions in metres:",
+            scaledSize
         );
+
 
     },
 
 
-    function (xhr) {
+    function(xhr) {
 
         if (xhr.total) {
-
-            const percent =
-                xhr.loaded /
-                xhr.total *
-                100;
 
             document.getElementById(
                 "info"
             ).innerText =
-                "Loading GLB: " +
-                percent.toFixed(0) +
+                "Loading: " +
+                (
+                    xhr.loaded /
+                    xhr.total *
+                    100
+                ).toFixed(0) +
                 "%";
 
         }
@@ -289,10 +423,10 @@ loader.load(
     },
 
 
-    function (error) {
+    function(error) {
 
         console.error(
-            "GLB LOAD ERROR:",
+            "FBX ERROR",
             error
         );
 
@@ -302,38 +436,365 @@ loader.load(
                 "error"
             );
 
+
         errorBox.style.display =
             "block";
 
+
         errorBox.innerText =
-            "GLB LOAD ERROR\n\n" +
-            (error.message ||
-             String(error));
+            "FBX ERROR\n\n" +
+            (
+                error.message ||
+                String(error)
+            );
 
 
         document.getElementById(
             "info"
         ).innerText =
-            "GLB failed to load";
+            "FBX failed";
 
     }
 
 );
 
 
-// --------------------------------------------------
+// ==================================================
+// AR BUTTON
+// ==================================================
+
+const arButton =
+    ARButton.createButton(
+        renderer,
+        {
+
+            requiredFeatures: [
+                'hit-test'
+            ],
+
+            optionalFeatures: [
+                'dom-overlay'
+            ],
+
+            domOverlay: {
+                root: document.body
+            }
+
+        }
+    );
+
+
+document.body.appendChild(
+    arButton
+);
+
+
+// ==================================================
+// AR RETICLE
+// ==================================================
+
+const reticle =
+    new THREE.Mesh(
+
+        new THREE.RingGeometry(
+            0.08,
+            0.1,
+            32
+        ),
+
+        new THREE.MeshBasicMaterial({
+            color: 0xffffff
+        })
+
+    );
+
+
+reticle.rotation.x =
+    -Math.PI / 2;
+
+
+reticle.matrixAutoUpdate =
+    false;
+
+
+reticle.visible =
+    false;
+
+
+scene.add(
+    reticle
+);
+
+
+// ==================================================
+// AR HIT TEST
+// ==================================================
+
+let hitTestSource =
+    null;
+
+let hitTestSourceRequested =
+    false;
+
+
+// ==================================================
+// AR CONTROLLER
+// ==================================================
+
+const controller =
+    renderer.xr.getController(
+        0
+    );
+
+
+scene.add(
+    controller
+);
+
+
+// ==================================================
+// TAP TO PLACE
+// ==================================================
+
+controller.addEventListener(
+    'select',
+    function() {
+
+        if (
+            !reticle.visible ||
+            !furniture
+        ) {
+            return;
+        }
+
+
+        // Place furniture
+        // on detected surface
+
+        furniture.position.set(
+            0,
+            0,
+            0
+        );
+
+
+        furniture.matrix.copy(
+            reticle.matrix
+        );
+
+
+        furniture.matrixAutoUpdate =
+            false;
+
+
+        document.getElementById(
+            "ar-instruction"
+        ).innerText =
+            "Furniture placed";
+
+    }
+);
+
+
+// ==================================================
+// XR SESSION
+// ==================================================
+
+renderer.xr.addEventListener(
+    'sessionstart',
+    function() {
+
+        document.getElementById(
+            "info"
+        ).style.display =
+            "none";
+
+
+        document.getElementById(
+            "ar-instruction"
+        ).style.display =
+            "block";
+
+    }
+);
+
+
+renderer.xr.addEventListener(
+    'sessionend',
+    function() {
+
+        hitTestSourceRequested =
+            false;
+
+        hitTestSource =
+            null;
+
+
+        reticle.visible =
+            false;
+
+
+        document.getElementById(
+            "info"
+        ).style.display =
+            "block";
+
+
+        document.getElementById(
+            "ar-instruction"
+        ).style.display =
+            "none";
+
+    }
+);
+
+
+// ==================================================
+// RENDER LOOP
+// ==================================================
+
+renderer.setAnimationLoop(
+    function(
+        timestamp,
+        frame
+    ) {
+
+
+        if (
+            frame &&
+            renderer.xr.isPresenting
+        ) {
+
+
+            const session =
+                renderer.xr.getSession();
+
+
+            const referenceSpace =
+                renderer.xr
+                    .getReferenceSpace();
+
+
+            if (
+                !hitTestSourceRequested
+            ) {
+
+                session.requestReferenceSpace(
+                    'viewer'
+                )
+                .then(
+                    function(
+                        referenceSpace
+                    ) {
+
+                        session.requestHitTestSource({
+                            space:
+                                referenceSpace
+                        })
+                        .then(
+                            function(
+                                source
+                            ) {
+
+                                hitTestSource =
+                                    source;
+
+                            }
+                        );
+
+                    }
+                );
+
+
+                session.addEventListener(
+                    'end',
+                    function() {
+
+                        hitTestSourceRequested =
+                            false;
+
+                        hitTestSource =
+                            null;
+
+                    }
+                );
+
+
+                hitTestSourceRequested =
+                    true;
+
+            }
+
+
+            if (
+                hitTestSource
+            ) {
+
+                const hitTestResults =
+                    frame.getHitTestResults(
+                        hitTestSource
+                    );
+
+
+                if (
+                    hitTestResults.length
+                ) {
+
+                    const hit =
+                        hitTestResults[0];
+
+
+                    const pose =
+                        hit.getPose(
+                            referenceSpace
+                        );
+
+
+                    reticle.visible =
+                        true;
+
+
+                    reticle.matrix.fromArray(
+                        pose.transform.matrix
+                    );
+
+                }
+                else {
+
+                    reticle.visible =
+                        false;
+
+                }
+
+            }
+
+        }
+
+
+        renderer.render(
+            scene,
+            camera
+        );
+
+    }
+);
+
+
+// ==================================================
 // RESIZE
-// --------------------------------------------------
+// ==================================================
 
 window.addEventListener(
-    "resize",
-    function () {
+    'resize',
+    function() {
 
         camera.aspect =
             window.innerWidth /
             window.innerHeight;
 
+
         camera.updateProjectionMatrix();
+
 
         renderer.setSize(
             window.innerWidth,
@@ -343,27 +804,6 @@ window.addEventListener(
     }
 );
 
-
-// --------------------------------------------------
-// RENDER
-// --------------------------------------------------
-
-function animate() {
-
-    requestAnimationFrame(
-        animate
-    );
-
-    controls.update();
-
-    renderer.render(
-        scene,
-        camera
-    );
-
-}
-
-animate();
 
 </script>
 
