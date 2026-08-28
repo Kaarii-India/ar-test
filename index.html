@@ -1,106 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>AR Furniture Test</title>
 
 <style>
-    html, body {
-        margin: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        font-family: Arial, sans-serif;
-        background: #222;
-    }
 
-    #info {
-        position: fixed;
-        top: 15px;
-        left: 15px;
-        z-index: 20;
-        background: white;
-        padding: 10px 14px;
-        border-radius: 8px;
-        font-size: 14px;
-    }
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #222;
+    font-family: Arial, sans-serif;
+}
 
-    #products {
-        position: fixed;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        z-index: 20;
+#products {
+    position: fixed;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
 
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
 
-    .product {
-        width: 90px;
-        padding: 15px 8px;
+.product {
+    width: 100px;
+    padding: 16px 8px;
 
-        border: none;
-        border-radius: 10px;
+    border: none;
+    border-radius: 12px;
 
-        background: white;
+    background: white;
 
-        font-weight: bold;
-        font-size: 14px;
+    font-weight: bold;
+    font-size: 15px;
 
-        box-shadow: 0 3px 10px rgba(0,0,0,.25);
-    }
+    box-shadow: 0 3px 12px rgba(0,0,0,.3);
+}
 
-    .product.selected {
-        outline: 3px solid #333;
-    }
+.product.selected {
+    outline: 4px solid #333;
+}
 
-    #instruction {
-        display: none;
+#instruction {
+    position: fixed;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
 
-        position: fixed;
-        bottom: 25px;
-        left: 50%;
-        transform: translateX(-50%);
+    z-index: 20;
 
-        z-index: 20;
+    background: white;
+    padding: 13px 20px;
 
-        background: white;
-        padding: 12px 18px;
+    border-radius: 25px;
 
-        border-radius: 25px;
+    font-weight: bold;
 
-        font-weight: bold;
+    box-shadow: 0 3px 12px rgba(0,0,0,.25);
 
-        box-shadow: 0 3px 12px rgba(0,0,0,.25);
+    white-space: nowrap;
+}
 
-        white-space: nowrap;
-    }
+#status {
+    position: fixed;
+    top: 15px;
+    left: 15px;
 
-    #error {
-        display: none;
+    z-index: 20;
 
-        position: fixed;
-        top: 70px;
-        left: 15px;
-        right: 15px;
+    background: white;
+    padding: 10px 14px;
 
-        z-index: 30;
+    border-radius: 8px;
 
-        background: #fff0f0;
-        color: #900;
+    font-size: 13px;
 
-        padding: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.2);
+}
 
-        border-radius: 8px;
+#error {
+    display: none;
 
-        font-family: monospace;
+    position: fixed;
+    top: 70px;
+    left: 15px;
+    right: 15px;
 
-        white-space: pre-wrap;
-    }
+    z-index: 30;
+
+    background: #fff0f0;
+    color: #900;
+
+    padding: 15px;
+
+    border-radius: 8px;
+
+    font-family: monospace;
+
+    white-space: pre-wrap;
+}
+
 </style>
+
 
 <script type="importmap">
 {
@@ -113,13 +122,17 @@
     }
 }
 </script>
+
 </head>
+
 
 <body>
 
-<div id="info">
+
+<div id="status">
     Loading products...
 </div>
+
 
 <div id="products">
 
@@ -133,9 +146,11 @@
 
 </div>
 
+
 <div id="instruction">
-    Move your phone until the floor is detected.
+    Tap SOFA or TABLE, then tap the screen to place.
 </div>
+
 
 <div id="error"></div>
 
@@ -179,8 +194,10 @@ const camera =
 
 const renderer =
     new THREE.WebGLRenderer({
+
         antialias: true,
         alpha: true
+
     });
 
 renderer.setPixelRatio(
@@ -195,7 +212,8 @@ renderer.setSize(
 renderer.outputColorSpace =
     THREE.SRGBColorSpace;
 
-renderer.xr.enabled = true;
+renderer.xr.enabled =
+    true;
 
 document.body.appendChild(
     renderer.domElement
@@ -203,7 +221,7 @@ document.body.appendChild(
 
 
 // =====================================================
-// LIGHTS
+// LIGHTING
 // =====================================================
 
 scene.add(
@@ -221,7 +239,9 @@ const directional =
     );
 
 directional.position.set(
-    5, 10, 5
+    5,
+    10,
+    5
 );
 
 scene.add(
@@ -239,6 +259,44 @@ let selectedProduct = null;
 
 
 // =====================================================
+// PREPARE MODEL
+// =====================================================
+
+function prepareModel(model) {
+
+    /*
+        Autodesk furniture is normally
+        exported in millimetres.
+
+        Convert mm → metres.
+    */
+
+    model.scale.set(
+        0.001,
+        0.001,
+        0.001
+    );
+
+
+    /*
+        Find bottom of model and move
+        its origin to the bottom.
+    */
+
+    const box =
+        new THREE.Box3()
+            .setFromObject(model);
+
+
+    model.position.y -=
+        box.min.y;
+
+
+    return model;
+}
+
+
+// =====================================================
 // LOAD PRODUCT
 // =====================================================
 
@@ -250,9 +308,11 @@ function loadProduct(
     const loader =
         new FBXLoader();
 
+
     loader.load(
 
         filename,
+
 
         function(model) {
 
@@ -261,65 +321,82 @@ function loadProduct(
                 " loaded"
             );
 
-            // -----------------------------------------
-            // SCALE
-            // -----------------------------------------
 
-            model.scale.set(
-                0.001,
-                0.001,
-                0.001
+            prepareModel(
+                model
             );
 
 
-            // -----------------------------------------
-            // HIDE UNTIL SELECTED
-            // -----------------------------------------
-
-            model.visible = false;
-
-
-            // -----------------------------------------
-            // STORE
-            // -----------------------------------------
-
             products[name] =
                 model;
+
+
+            /*
+                Source model stays hidden.
+
+                We clone it every time
+                the user places a product.
+            */
+
+            model.visible =
+                false;
+
 
             scene.add(
                 model
             );
 
 
-            document.getElementById(
-                "info"
-            ).innerText =
-                "Products ready";
-
+            updateStatus();
 
         },
 
-        undefined,
+
+        function(xhr) {
+
+            if (xhr.total) {
+
+                document.getElementById(
+                    "status"
+                ).innerText =
+                    name.toUpperCase() +
+                    " loading " +
+                    (
+                        xhr.loaded /
+                        xhr.total *
+                        100
+                    ).toFixed(0) +
+                    "%";
+
+            }
+
+        },
+
 
         function(error) {
 
             console.error(
                 name +
-                " load error",
+                " ERROR",
                 error
             );
+
 
             document.getElementById(
                 "error"
             ).style.display =
                 "block";
 
+
             document.getElementById(
                 "error"
             ).innerText +=
-                name +
-                " failed to load\n\n" +
-                error.message +
+                name.toUpperCase() +
+                " FAILED\n\n" +
+                (
+                    error.message ||
+                    String(error)
+                ) +
                 "\n\n";
 
         }
@@ -345,7 +422,29 @@ loadProduct(
 
 
 // =====================================================
-// PRODUCT BUTTONS
+// STATUS
+// =====================================================
+
+function updateStatus() {
+
+    const loaded =
+        Object.keys(products)
+            .length;
+
+
+    if (loaded === 2) {
+
+        document.getElementById(
+            "status"
+        ).innerText =
+            "SOFA + TABLE ready";
+
+    }
+}
+
+
+// =====================================================
+// PRODUCT SELECTION
 // =====================================================
 
 document
@@ -363,9 +462,11 @@ document
 
                 if (!products[name]) {
 
-                    alert(
-                        "Product is still loading."
-                    );
+                    document.getElementById(
+                        "status"
+                    ).innerText =
+                        name.toUpperCase() +
+                        " is still loading.";
 
                     return;
 
@@ -376,42 +477,15 @@ document
                     products[name];
 
 
-                // Hide all products
-
-                Object.values(
-                    products
-                ).forEach(
-                    p => {
-                        p.visible = false;
-                    }
-                );
-
-
-                // Show selected
-
-                selectedProduct.visible =
-                    true;
-
-
-                // Start with model
-                // at origin
-
-                selectedProduct.position.set(
-                    0,
-                    0,
-                    0
-                );
-
-
-                // Highlight button
-
                 document
                 .querySelectorAll(".product")
                 .forEach(
                     b => {
+
                         b.classList.remove(
                             "selected"
                         );
+
                     }
                 );
 
@@ -424,7 +498,8 @@ document
                 document.getElementById(
                     "instruction"
                 ).innerText =
-                    "Move phone to find floor, then tap to place.";
+                    "Now tap the screen to place " +
+                    name.toUpperCase();
 
             }
 
@@ -442,9 +517,15 @@ const arButton =
     ARButton.createButton(
         renderer,
         {
-            requiredFeatures: [
-                "hit-test"
-            ],
+
+            /*
+                IMPORTANT:
+
+                NO hit-test.
+
+                We are deliberately not
+                using floor detection yet.
+            */
 
             optionalFeatures: [
                 "dom-overlay"
@@ -453,45 +534,13 @@ const arButton =
             domOverlay: {
                 root: document.body
             }
+
         }
     );
 
 
 document.body.appendChild(
     arButton
-);
-
-
-// =====================================================
-// RETICLE
-// =====================================================
-
-const reticle =
-    new THREE.Mesh(
-
-        new THREE.RingGeometry(
-            0.08,
-            0.1,
-            32
-        ),
-
-        new THREE.MeshBasicMaterial({
-            color: 0xffffff
-        })
-
-    );
-
-reticle.rotation.x =
-    -Math.PI / 2;
-
-reticle.matrixAutoUpdate =
-    false;
-
-reticle.visible =
-    false;
-
-scene.add(
-    reticle
 );
 
 
@@ -510,49 +559,111 @@ scene.add(
 
 
 // =====================================================
-// TAP TO PLACE
+// PLACE PRODUCT
 // =====================================================
 
 controller.addEventListener(
     "select",
     function() {
 
-        if (
-            !selectedProduct ||
-            !reticle.visible
-        ) {
+        if (!selectedProduct) {
+
+            document.getElementById(
+                "instruction"
+            ).innerText =
+                "Select SOFA or TABLE first.";
+
             return;
+
         }
 
 
-        // Copy reticle position
+        /*
+            Make a new copy.
 
-        selectedProduct.position.setFromMatrixPosition(
-            reticle.matrix
+            This means previously placed
+            products remain in the room.
+        */
+
+        const object =
+            selectedProduct.clone(
+                true
+            );
+
+
+        object.visible =
+            true;
+
+
+        /*
+            Put object approximately
+            1 metre in front of camera.
+        */
+
+        const direction =
+            new THREE.Vector3();
+
+
+        camera.getWorldDirection(
+            direction
         );
 
 
-        // Put model on floor
-
-        selectedProduct.position.y =
-            0;
+        const position =
+            camera.position.clone();
 
 
-        selectedProduct.visible =
-            true;
+        position.add(
+            direction.multiplyScalar(
+                1.0
+            )
+        );
+
+
+        /*
+            Put object approximately
+            at floor level.
+
+            We assume the phone is
+            being held around 1.2m
+            above the floor.
+        */
+
+        position.y -=
+            1.2;
+
+
+        object.position.copy(
+            position
+        );
+
+
+        /*
+            Make sure object rotation
+            follows the horizontal
+            direction of the camera.
+        */
+
+        object.rotation.y =
+            camera.rotation.y;
+
+
+        scene.add(
+            object
+        );
 
 
         document.getElementById(
             "instruction"
         ).innerText =
-            "Placed. Select another product.";
+            "Placed! Select another product.";
 
     }
 );
 
 
 // =====================================================
-// XR SESSION
+// AR SESSION START
 // =====================================================
 
 renderer.xr.addEventListener(
@@ -560,12 +671,29 @@ renderer.xr.addEventListener(
     function() {
 
         document.getElementById(
-            "info"
+            "status"
         ).style.display =
             "none";
 
         document.getElementById(
             "instruction"
+        ).innerText =
+            "Select SOFA or TABLE, then tap the screen.";
+
+    }
+);
+
+
+// =====================================================
+// AR SESSION END
+// =====================================================
+
+renderer.xr.addEventListener(
+    "sessionend",
+    function() {
+
+        document.getElementById(
+            "status"
         ).style.display =
             "block";
 
@@ -574,114 +702,11 @@ renderer.xr.addEventListener(
 
 
 // =====================================================
-// HIT TEST
+// RENDER LOOP
 // =====================================================
 
-let hitTestSource = null;
-
-let hitTestSourceRequested =
-    false;
-
-
 renderer.setAnimationLoop(
-    function(
-        timestamp,
-        frame
-    ) {
-
-        if (
-            frame &&
-            renderer.xr.isPresenting
-        ) {
-
-            const session =
-                renderer.xr.getSession();
-
-            const referenceSpace =
-                renderer.xr.getReferenceSpace();
-
-
-            if (
-                !hitTestSourceRequested
-            ) {
-
-                session
-                .requestReferenceSpace(
-                    "viewer"
-                )
-                .then(
-                    function(
-                        viewerSpace
-                    ) {
-
-                        session
-                        .requestHitTestSource({
-                            space:
-                                viewerSpace
-                        })
-                        .then(
-                            function(
-                                source
-                            ) {
-
-                                hitTestSource =
-                                    source;
-
-                            }
-                        );
-
-                    }
-                );
-
-
-                hitTestSourceRequested =
-                    true;
-
-            }
-
-
-            if (hitTestSource) {
-
-                const results =
-                    frame.getHitTestResults(
-                        hitTestSource
-                    );
-
-
-                if (
-                    results.length > 0
-                ) {
-
-                    const hit =
-                        results[0];
-
-
-                    const pose =
-                        hit.getPose(
-                            referenceSpace
-                        );
-
-
-                    reticle.visible =
-                        true;
-
-
-                    reticle.matrix.fromArray(
-                        pose.transform.matrix
-                    );
-
-                }
-                else {
-
-                    reticle.visible =
-                        false;
-
-                }
-
-            }
-
-        }
-
+    function() {
 
         renderer.render(
             scene,
